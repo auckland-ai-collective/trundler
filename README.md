@@ -148,3 +148,9 @@ scripts/smoke.mjs          headless MCP + Ollama check
 - Packaging currently assumes the MCP is spawned with Electron's bundled Node
   (`ELECTRON_RUN_AS_NODE`). For a shipped installer you'd bundle or reference trundler-mcp
   explicitly.
+
+## License
+
+MIT © 2026 Michael Wells &lt;mike@aaic.nz&gt; — see [LICENSE](LICENSE).
+
+An open-source project. Contributions welcome.
