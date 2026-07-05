@@ -1,4 +1,6 @@
-# Trundler — local grocery-shopping companion
+<p align="center">
+  <img src=".github/social-preview.png" alt="Trundler — local grocery-shopping companion" width="720" />
+</p>
 
 A desktop app that lets you **have a dialogue with an agent** while it shops for you.
 The agent's brain runs either **locally (Ollama)** or in the **cloud (Claude)**; either
