@@ -3,6 +3,7 @@ out/
 dist/
 release/
 *.log
+*.tsbuildinfo
 .env
 .env.*
 !.env.example

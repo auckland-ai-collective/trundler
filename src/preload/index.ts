@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { AgentEvent, AppConfig, ToolInfo } from '../shared/types.js'
+import type { AgentEvent, AppConfig, AuthStatus, ToolInfo } from '../shared/types.js'
 
 const api = {
   getConfig: (): Promise<AppConfig> => ipcRenderer.invoke('config:get'),
@@ -21,6 +21,10 @@ const api = {
   getDebugInfo: (): Promise<{ enabled: boolean; path: string }> =>
     ipcRenderer.invoke('debug:info'),
   openLogs: (): Promise<void> => ipcRenderer.invoke('debug:open'),
+
+  authStatus: (provider: string): Promise<AuthStatus> => ipcRenderer.invoke('auth:status', provider),
+  authLogin: (provider: string): Promise<AuthStatus> => ipcRenderer.invoke('auth:login', provider),
+  authLogout: (provider: string): Promise<AuthStatus> => ipcRenderer.invoke('auth:logout', provider),
 
   /** Subscribe to streamed agent events. Returns an unsubscribe fn. */
   onAgentEvent: (cb: (evt: AgentEvent) => void): (() => void) => {

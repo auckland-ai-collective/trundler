@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import type { AgentEvent, AppConfig, Cart, ToolCall } from '../shared/types.js'
+import type { AgentEvent, AppConfig, AuthStatus, Cart, ToolCall } from '../shared/types.js'
 import { CART_TOOLS, PRODUCT_TOOLS, extractProducts, type Block } from './blocks.js'
 import { renderMarkdown } from './lib/markdown.js'
 import { TopBar } from './components/TopBar.js'
@@ -22,6 +22,9 @@ export function App(): JSX.Element {
   const [cartLoading, setCartLoading] = useState(false)
   const [cartUpdatedAt, setCartUpdatedAt] = useState<string | null>(null)
   const [debug, setDebug] = useState<{ enabled: boolean; path: string }>({ enabled: false, path: '' })
+  const [auth, setAuth] = useState<AuthStatus | null>(null)
+  const [authBusy, setAuthBusy] = useState(false)
+  const [authMessage, setAuthMessage] = useState<string | null>(null)
 
   // Id of the assistant block currently receiving streamed text (null = none open).
   const openAssistant = useRef<string | null>(null)
@@ -44,6 +47,13 @@ export function App(): JSX.Element {
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
   }, [blocks])
+
+  // Refresh login status whenever the active provider changes.
+  useEffect(() => {
+    const provider = config?.defaultProvider
+    if (!provider) return
+    window.trundler.authStatus(provider).then(setAuth)
+  }, [config?.defaultProvider])
 
   function append(b: Block): void {
     setBlocks((prev) => [...prev, b])
@@ -151,6 +161,34 @@ export function App(): JSX.Element {
     openAssistant.current = null
   }
 
+  async function onLogin(): Promise<void> {
+    const p = config!.defaultProvider
+    setAuthBusy(true)
+    setAuthMessage(
+      'A browser window is opening — complete sign-in there. First-time sign-in may download a browser (~150 MB), which can take a minute.'
+    )
+    try {
+      setAuth(await window.trundler.authLogin(p))
+      refreshCart(p)
+    } finally {
+      setAuthBusy(false)
+      setAuthMessage(null)
+    }
+  }
+
+  async function onLogout(): Promise<void> {
+    const p = config!.defaultProvider
+    setAuthBusy(true)
+    try {
+      setAuth(await window.trundler.authLogout(p))
+      setCart(null)
+      setCartUpdatedAt(null)
+      setCartNote(null)
+    } finally {
+      setAuthBusy(false)
+    }
+  }
+
   if (!config) return <div className="loading">Starting Trundler…</div>
 
   const provider = config.defaultProvider
@@ -158,7 +196,18 @@ export function App(): JSX.Element {
 
   return (
     <div className="app">
-      <TopBar config={config} toolCount={toolCount} onChange={onConfigChange} onNewChat={onNewChat} />
+      <TopBar
+        config={config}
+        toolCount={toolCount}
+        auth={auth}
+        authBusy={authBusy}
+        onChange={onConfigChange}
+        onNewChat={onNewChat}
+        onLogin={onLogin}
+        onLogout={onLogout}
+      />
+
+      {authMessage ? <div className="auth-banner">{authMessage}</div> : null}
 
       <div className="main">
         <div className="chat">

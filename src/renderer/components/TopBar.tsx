@@ -1,11 +1,15 @@
 import { useState } from 'react'
-import type { AppConfig, BackendId } from '../../shared/types.js'
+import type { AppConfig, AuthStatus, BackendId } from '../../shared/types.js'
 
 interface Props {
   config: AppConfig
   toolCount: number
+  auth: AuthStatus | null
+  authBusy: boolean
   onChange: (cfg: AppConfig) => void
   onNewChat: () => void
+  onLogin: () => void
+  onLogout: () => void
 }
 
 const PROVIDERS = [
@@ -14,7 +18,16 @@ const PROVIDERS = [
   { id: 'paknsave', label: "Pak'nSave" }
 ]
 
-export function TopBar({ config, toolCount, onChange, onNewChat }: Props): JSX.Element {
+export function TopBar({
+  config,
+  toolCount,
+  auth,
+  authBusy,
+  onChange,
+  onNewChat,
+  onLogin,
+  onLogout
+}: Props): JSX.Element {
   const [open, setOpen] = useState(false)
 
   function patch(p: Partial<AppConfig>): void {
@@ -51,6 +64,8 @@ export function TopBar({ config, toolCount, onChange, onNewChat }: Props): JSX.E
             <option value="anthropic">Claude (cloud)</option>
           </select>
         </label>
+
+        <AuthControl auth={auth} busy={authBusy} onLogin={onLogin} onLogout={onLogout} />
 
         <button className="ghost" onClick={() => setOpen((v) => !v)}>
           ⚙︎
@@ -116,4 +131,55 @@ export function TopBar({ config, toolCount, onChange, onNewChat }: Props): JSX.E
       ) : null}
     </header>
   )
+}
+
+function AuthControl({
+  auth,
+  busy,
+  onLogin,
+  onLogout
+}: {
+  auth: AuthStatus | null
+  busy: boolean
+  onLogin: () => void
+  onLogout: () => void
+}): JSX.Element | null {
+  if (!auth || !auth.requiresLogin) {
+    return <span className="auth-chip anon" title="This provider needs no login">no login needed</span>
+  }
+
+  if (busy) {
+    return (
+      <span className="auth-chip busy">
+        <span className="auth-dot pending" />
+        Working…
+      </span>
+    )
+  }
+
+  if (auth.isLoggedIn) {
+    return (
+      <span className="auth-chip in" title={auth.email ?? 'Signed in'}>
+        <span className="auth-dot ok" />
+        {auth.email ? shortEmail(auth.email) : 'Signed in'}
+        <button className="auth-btn" onClick={onLogout}>
+          Log out
+        </button>
+      </span>
+    )
+  }
+
+  return (
+    <span className="auth-chip out" title="Not signed in">
+      <span className="auth-dot down" />
+      Signed out
+      <button className="auth-btn primary" onClick={onLogin}>
+        Log in
+      </button>
+    </span>
+  )
+}
+
+function shortEmail(email: string): string {
+  return email.length > 22 ? `${email.slice(0, 20)}…` : email
 }

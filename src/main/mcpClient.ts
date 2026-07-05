@@ -12,9 +12,13 @@ export class TrundlerMcp {
   private client: Client | null = null
   private transport: StdioClientTransport | null = null
   private tools: ToolDef[] = []
+  private serverPath = ''
+  private nodePath = ''
   instructions = ''
 
   async connect(serverPath: string, nodePath: string): Promise<void> {
+    this.serverPath = serverPath
+    this.nodePath = nodePath
     this.transport = new StdioClientTransport({
       command: nodePath,
       args: [serverPath],
@@ -51,6 +55,13 @@ export class TrundlerMcp {
     if (!this.client) throw new Error('MCP client not connected')
     const result = await this.client.callTool({ name, arguments: args })
     return parseToolResult(result)
+  }
+
+  /** Tear down and respawn the server — used after clearing a session so the
+   *  subprocess drops its in-memory token cache and reloads from disk. */
+  async reconnect(): Promise<void> {
+    await this.close()
+    await this.connect(this.serverPath, this.nodePath)
   }
 
   async close(): Promise<void> {

@@ -9,7 +9,10 @@ import { runAgent } from './agent/loop.js'
 import { buildSystemPrompt } from './agent/system.js'
 import { Logger, debugEnabled } from './logger.js'
 import type { Backend, ChatMessage } from './agent/types.js'
-import type { AgentEvent, AppConfig, ToolCall } from '../shared/types.js'
+import type { AgentEvent, AppConfig, AuthStatus, ToolCall } from '../shared/types.js'
+
+/** Providers that use a login session (others are anonymous / read-only). */
+const AUTH_PROVIDERS = new Set(['countdown'])
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url))
 
@@ -202,6 +205,59 @@ ipcMain.handle('approval:respond', (_e, id: string, approved: boolean) => {
   logger?.event('approval-response', { id, approved })
   pendingApprovals.get(id)?.(approved)
   pendingApprovals.delete(id)
+})
+
+// ---- Auth -----------------------------------------------------------------
+
+async function getAuthStatus(provider: string): Promise<AuthStatus> {
+  if (!AUTH_PROVIDERS.has(provider)) {
+    return { provider, requiresLogin: false, isLoggedIn: false, email: null, expiresAt: null }
+  }
+  try {
+    const data = (await mcp.callTool('check_login', { provider })) as {
+      isLoggedIn?: boolean
+      email?: string | null
+      expiresAt?: string | null
+    }
+    return {
+      provider,
+      requiresLogin: true,
+      isLoggedIn: Boolean(data?.isLoggedIn),
+      email: data?.email ?? null,
+      expiresAt: data?.expiresAt ?? null
+    }
+  } catch {
+    return { provider, requiresLogin: true, isLoggedIn: false, email: null, expiresAt: null }
+  }
+}
+
+ipcMain.handle('auth:status', (_e, provider: string) => getAuthStatus(provider))
+
+ipcMain.handle('auth:login', async (_e, provider: string) => {
+  logger?.event('auth-login-start', { provider })
+  try {
+    await mcp.callTool('login', { provider }) // opens a browser; blocks until done
+  } catch (err) {
+    logger?.event('auth-login-error', { provider, error: err instanceof Error ? err.message : String(err) })
+  }
+  const status = await getAuthStatus(provider)
+  logger?.event('auth-login-done', { provider, isLoggedIn: status.isLoggedIn, email: status.email })
+  return status
+})
+
+ipcMain.handle('auth:logout', async (_e, provider: string) => {
+  logger?.event('auth-logout', { provider })
+  try {
+    // Lazily import so the package's Playwright-laden graph stays out of startup.
+    const { TokenStore } = await import('@auckland-ai-collective/trundler-mcp')
+    // Clear on-disk session, then respawn so the server drops its cached tokens.
+    await new TokenStore(provider).clear()
+    await mcp.reconnect()
+    systemPrompt = buildSystemPrompt(mcp.instructions, config.defaultProvider)
+  } catch (err) {
+    logger?.event('auth-logout-error', { provider, error: err instanceof Error ? err.message : String(err) })
+  }
+  return getAuthStatus(provider)
 })
 
 ipcMain.handle('chat:cancel', () => {

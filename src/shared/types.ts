@@ -1,5 +1,10 @@
 // Types shared across the main process, preload bridge, and renderer.
 
+// Grocery domain types come from the MCP package — single source of truth.
+// Type-only re-export: erased at compile time, so it never pulls the package
+// (or its Playwright graph) into the renderer bundle.
+export type { Product, Cart, CartItem, CartTotals } from '@auckland-ai-collective/trundler-mcp'
+
 export type BackendId = 'ollama' | 'anthropic'
 
 export interface AppConfig {
@@ -18,48 +23,6 @@ export interface ToolCall {
   args: Record<string, unknown>
 }
 
-/** A product as returned by trundler-mcp product tools. */
-export interface Product {
-  sku: string
-  name: string
-  brand?: string
-  price?: number
-  originalPrice?: number
-  savings?: number
-  savingsPercent?: number
-  isSpecial?: boolean
-  multiBuy?: string | null
-  unitPrice?: number
-  unitMeasure?: string
-  size?: string
-  inStock?: boolean
-  image?: string
-  productUrl?: string
-  department?: string
-}
-
-export interface CartItem {
-  sku: string
-  name?: string
-  quantity?: number
-  unit?: string
-  price?: number
-  subtotal?: string | number
-}
-
-export interface CartTotals {
-  itemCount?: number
-  totalQuantity?: number
-  subtotal?: string
-  savings?: string
-  total?: string
-}
-
-export interface Cart {
-  items: CartItem[]
-  totals: CartTotals
-}
-
 // ---- Streaming events pushed from main -> renderer over a single channel ----
 
 export type AgentEvent =
@@ -73,4 +36,13 @@ export type AgentEvent =
 export interface ToolInfo {
   name: string
   description: string
+}
+
+export interface AuthStatus {
+  provider: string
+  /** Whether this provider needs a login at all (false for anonymous providers). */
+  requiresLogin: boolean
+  isLoggedIn: boolean
+  email: string | null
+  expiresAt: string | null
 }

@@ -3,8 +3,10 @@
 A desktop app that lets you **have a dialogue with an agent** while it shops for you.
 The agent's brain runs either **locally (Ollama)** or in the **cloud (Claude)**; either
 way, all the actual grocery I/O happens on your own machine and residential connection
-via [`trundler-mcp`](../../MCP/trundler-mcp), so there's no bot-detection or hosting
-problem to solve.
+via [`trundler-mcp`](https://www.npmjs.com/package/@auckland-ai-collective/trundler-mcp)
+([source](https://github.com/auckland-ai-collective/trundler-mcp)), so there's no
+bot-detection or hosting problem to solve. It's a normal npm dependency of this app —
+you don't install it separately.
 
 > **Cloud brain, local hands.** Bot detection only cares about the requests hitting the
 > grocery sites — those are made by trundler-mcp on your machine. The model that decides
@@ -30,6 +32,8 @@ Electron main (Node)                         Renderer (React)
   approval modal before they run.
 - **Structured tool results become UI**: product results render as a card grid; cart
   tools refresh the live cart panel.
+- **Auth is first-class**: a status chip shows whether you're signed in to Countdown,
+  with **Log in** / **Log out** buttons in the top bar (no need to discover it via an error).
 
 ## Prerequisites
 
@@ -39,24 +43,25 @@ Electron main (Node)                         Renderer (React)
   ollama pull llama3.1:8b      # fast, good enough for dev
   ollama pull qwen3:14b        # stronger tool use, slower
   ```
-- **trundler-mcp built**: in `D:/Projects/MCP/trundler-mcp`, run `npm run build`.
-  For Countdown cart/orders, log in once there: `npm run cli login`.
+
+That's it — the grocery data layer (`@auckland-ai-collective/trundler-mcp`) is a
+dependency and installs automatically. No second repo to clone or build.
 
 ## Setup
 
 ```bash
-npm install
+npm install     # also pulls trundler-mcp (no browser download; that's lazy — see below)
 ```
 
 ### Verify the plumbing (no GUI)
 
 ```bash
-npm run smoke -- "find jasmine rice on special"
+npm run smoke -- "find jasmine rice on special"   # stdio round-trip via the MCP + Ollama
+npm run libcheck                                   # in-process (buildServer) round-trip
 ```
 
-This connects to trundler-mcp, runs one Ollama tool-calling loop, executes the tool
-call, and prints the transcript. Use it to confirm your model + MCP path work before
-launching the app.
+Both resolve the MCP from the installed package, run a real tool call, and print the
+result — use them to confirm your model works before launching the app.
 
 ### Run the app
 
@@ -71,18 +76,34 @@ npm run build      # compile main/preload/renderer into out/
 npm run dist       # + package a Windows installer (electron-builder)
 ```
 
+## Signing in (Countdown)
+
+Countdown/Woolworths needs a login for cart and order history. Two ways:
+
+- **In the app:** click **Log in** in the top bar — a real browser window opens; sign in
+  there and the app captures the session. The **first** sign-in downloads a browser
+  (~150 MB, one-time) — the app shows a banner while that happens.
+- **From the CLI:** `npx trundler login` (the package ships a `trundler` bin).
+
+**Log out** (in the app) clears the stored session and forces re-authentication. New
+World and Pak'nSave need no login (anonymous, read-only).
+
 ## Configuration
 
 Everything is settable in-app (⚙︎ in the top bar): brain (Ollama/Claude), model, Ollama
 host, Claude API key, MCP server path, and default provider. Defaults can also come from
-env vars — see [`.env.example`](.env.example). Settings persist to
-`config.json` in the app's userData directory.
+env vars — see [`.env.example`](.env.example). Settings persist to `config.json` in the
+app's userData directory.
+
+**MCP path:** by default the app resolves the server from the installed
+`@auckland-ai-collective/trundler-mcp` package automatically — no path to set. Override
+with `TRUNDLER_MCP_PATH` (or the ⚙︎ field) only if you're pointing at a local checkout.
 
 ### Providers
 
 | Provider     | id          | Cart | Notes                                             |
 | ------------ | ----------- | :--: | ------------------------------------------------- |
-| Countdown    | `countdown` |  ✅  | Requires login (run `trundler login` in the MCP). |
+| Countdown    | `countdown` |  ✅  | Needs login — use the **Log in** button.          |
 | New World    | `newworld`  |  ❌  | Read-only; pick a store first (agent does this).  |
 | Pak'nSave    | `paknsave`  |  ❌  | Read-only; per-store pricing.                     |
 
@@ -110,27 +131,21 @@ Each line is one JSON event, e.g.:
 {"t":"2026-07-05T…","type":"cart-state","provider":"countdown","itemCount":1,"detailedItems":0,"total":null}
 ```
 
-`detailedItems: 0` with a non-zero `itemCount` is the fingerprint of the trundler-mcp
-cart-detail mapping gap (see below).
-
-### Known issue: cart item detail
-
-The cart registers items correctly (the real account updates), but `cart_get` in
-**trundler-mcp** currently returns items without name/price detail — its `cartGet()`
-maps `/api/v1/trolleys/my` fields that don't match the actual response shape. Trundler
-(this app) now shows the item count and totals and flags the missing detail; the full
-fix belongs in the trundler-mcp repo:
-[auckland-ai-collective/trundler-mcp#1](https://github.com/auckland-ai-collective/trundler-mcp/issues/1).
+The debug log is what let us pin down real bugs — e.g. `detailedItems: 0` with a
+non-zero `itemCount` was the fingerprint of a cart-detail mapping bug in trundler-mcp
+([#1](https://github.com/auckland-ai-collective/trundler-mcp/issues/1), now fixed).
+The cart panel still tolerates sparse data defensively in case a provider returns it.
 
 ## Project layout
 
 ```
 src/
-  shared/types.ts          types shared across processes
+  shared/types.ts          shared types (domain types re-exported from the MCP package)
   main/
-    index.ts               window, IPC, orchestration, approval gate
-    config.ts              load/save config
-    mcpClient.ts           trundler-mcp stdio client
+    index.ts               window, IPC, orchestration, approval + auth gate
+    config.ts              config + MCP path resolution (from the installed package)
+    mcpClient.ts           trundler-mcp stdio client (spawn + reconnect)
+    logger.ts              JSONL session logger
     agent/
       loop.ts              shared tool loop
       ollamaBackend.ts     local model (streaming + tools)
@@ -138,16 +153,18 @@ src/
       system.ts            system prompt (+ MCP instructions)
   preload/index.ts         contextBridge API
   renderer/                React chat UI
-scripts/smoke.mjs          headless MCP + Ollama check
+scripts/smoke.mjs          headless stdio MCP + Ollama check
+scripts/lib-check.mjs      headless in-process (buildServer) check
 ```
 
 ## Notes / next steps
 
 - Only the Ollama path is exercised by the smoke test; the Claude path shares the same
   loop and is wired but needs an API key to try.
-- Packaging currently assumes the MCP is spawned with Electron's bundled Node
-  (`ELECTRON_RUN_AS_NODE`). For a shipped installer you'd bundle or reference trundler-mcp
-  explicitly.
+- The app spawns the MCP as a subprocess with Electron's bundled Node
+  (`ELECTRON_RUN_AS_NODE`). The package also exposes a library entry (`buildServer`), so a
+  packaged build can instead mount the MCP **in-process** (in-memory transport) to avoid
+  subprocess/path issues — validated by `npm run libcheck`.
 
 ## License
 
