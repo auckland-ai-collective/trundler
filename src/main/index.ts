@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, shell, Menu } from 'electron'
+import { app, BrowserWindow, ipcMain, shell, Menu, nativeTheme } from 'electron'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { loadConfig, saveConfig } from './config.js'
@@ -313,6 +313,7 @@ ipcMain.handle('chat:send', async (_e, text: string) => {
 // ---- Lifecycle ------------------------------------------------------------
 
 app.whenReady().then(async () => {
+  nativeTheme.themeSource = 'dark' // dark native title bar + window frame (DWM)
   Menu.setApplicationMenu(null) // no default File/Edit/View… menu bar
   if (process.platform === 'darwin' && app.dock) {
     app.dock.setIcon(join(ICON_DIR, 'icon.png')) // dock icon in dev (packaged uses icns)
