@@ -19,6 +19,9 @@ export function App(): JSX.Element {
   const [approval, setApproval] = useState<ToolCall | null>(null)
   const [cart, setCart] = useState<Cart | null>(null)
   const [cartNote, setCartNote] = useState<string | null>(null)
+  const [cartLoading, setCartLoading] = useState(false)
+  const [cartUpdatedAt, setCartUpdatedAt] = useState<string | null>(null)
+  const [debug, setDebug] = useState<{ enabled: boolean; path: string }>({ enabled: false, path: '' })
 
   // Id of the assistant block currently receiving streamed text (null = none open).
   const openAssistant = useRef<string | null>(null)
@@ -29,6 +32,7 @@ export function App(): JSX.Element {
   useEffect(() => {
     window.trundler.getConfig().then(setConfig)
     window.trundler.listTools().then((t) => setToolCount(t.length))
+    window.trundler.getDebugInfo().then(setDebug)
   }, [])
 
   useEffect(() => {
@@ -99,13 +103,19 @@ export function App(): JSX.Element {
   }
 
   async function refreshCart(provider: string): Promise<void> {
-    const res = await window.trundler.mcpCall('cart_get', { provider })
-    if (res.ok && res.data && typeof res.data === 'object' && 'items' in (res.data as object)) {
-      setCart(res.data as Cart)
-      setCartNote(null)
-    } else {
-      const msg = (res.data as { error?: string })?.error
-      setCartNote(msg ? shortError(msg) : null)
+    setCartLoading(true)
+    try {
+      const res = await window.trundler.mcpCall('cart_get', { provider })
+      if (res.ok && res.data && typeof res.data === 'object' && 'items' in (res.data as object)) {
+        setCart(res.data as Cart)
+        setCartNote(null)
+        setCartUpdatedAt(new Date().toLocaleTimeString())
+      } else {
+        const msg = (res.data as { error?: string })?.error
+        setCartNote(msg ? shortError(msg) : 'Could not read cart.')
+      }
+    } finally {
+      setCartLoading(false)
     }
   }
 
@@ -161,8 +171,25 @@ export function App(): JSX.Element {
           <Composer running={running} onSend={send} onCancel={() => window.trundler.cancel()} />
         </div>
 
-        <CartPanel cart={cart} provider={provider} note={cartNote} onRefresh={() => refreshCart(provider)} />
+        <CartPanel
+          cart={cart}
+          provider={provider}
+          note={cartNote}
+          loading={cartLoading}
+          updatedAt={cartUpdatedAt}
+          onRefresh={() => refreshCart(provider)}
+        />
       </div>
+
+      {debug.enabled ? (
+        <footer className="debug-bar">
+          <span className="debug-dot" />
+          Debug logging on · {config.backend === 'anthropic' ? config.anthropic.model : config.ollama.model}
+          <button className="debug-link" onClick={() => window.trundler.openLogs()} title={debug.path}>
+            open logs
+          </button>
+        </footer>
+      ) : null}
 
       {approval ? <ApprovalModal call={approval} onRespond={onApprovalRespond} /> : null}
     </div>

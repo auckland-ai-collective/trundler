@@ -86,6 +86,41 @@ env vars — see [`.env.example`](.env.example). Settings persist to
 | New World    | `newworld`  |  ❌  | Read-only; pick a store first (agent does this).  |
 | Pak'nSave    | `paknsave`  |  ❌  | Read-only; per-store pricing.                     |
 
+## Debug logging / telemetry
+
+Trundler writes a structured **JSONL session log** capturing the whole interaction:
+the user's prompt, **the model/backend in use**, every MCP tool call and its result,
+cart state, approvals, and errors. One file per app run in the app's
+`userData/logs/` directory (use the **open logs** button in the debug footer, or
+`shell` reveal).
+
+- **On automatically in dev** (`npm run dev`).
+- **In production**, enable with `--debug` or `TRUNDLER_DEBUG=1` so a user can capture
+  and send you their logs:
+  ```
+  Trundler.exe --debug
+  ```
+
+Each line is one JSON event, e.g.:
+
+```json
+{"t":"2026-07-05T…","type":"user-message","text":"add A to cart","backend":"ollama","model":"llama3.1:8b","provider":"countdown"}
+{"t":"2026-07-05T…","type":"mcp-call","name":"cart_add","args":{"sku":"601342","quantity":1}}
+{"t":"2026-07-05T…","type":"mcp-result","name":"cart_add","ok":true,"provider":"countdown","data":{…}}
+{"t":"2026-07-05T…","type":"cart-state","provider":"countdown","itemCount":1,"detailedItems":0,"total":null}
+```
+
+`detailedItems: 0` with a non-zero `itemCount` is the fingerprint of the trundler-mcp
+cart-detail mapping gap (see below).
+
+### Known issue: cart item detail
+
+The cart registers items correctly (the real account updates), but `cart_get` in
+**trundler-mcp** currently returns items without name/price detail — its `cartGet()`
+maps `/api/v1/trolleys/my` fields that don't match the actual response shape. Trundler
+(this app) now shows the item count and totals and flags the missing detail; the full
+fix belongs in the trundler-mcp repo.
+
 ## Project layout
 
 ```

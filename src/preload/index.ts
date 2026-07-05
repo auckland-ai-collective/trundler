@@ -18,6 +18,10 @@ const api = {
   respondApproval: (id: string, approved: boolean): Promise<void> =>
     ipcRenderer.invoke('approval:respond', id, approved),
 
+  getDebugInfo: (): Promise<{ enabled: boolean; path: string }> =>
+    ipcRenderer.invoke('debug:info'),
+  openLogs: (): Promise<void> => ipcRenderer.invoke('debug:open'),
+
   /** Subscribe to streamed agent events. Returns an unsubscribe fn. */
   onAgentEvent: (cb: (evt: AgentEvent) => void): (() => void) => {
     const listener = (_e: unknown, evt: AgentEvent): void => cb(evt)
