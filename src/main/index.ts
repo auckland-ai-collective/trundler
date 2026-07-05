@@ -104,7 +104,7 @@ async function createWindow(): Promise<void> {
     minWidth: 900,
     minHeight: 600,
     backgroundColor: '#14161b',
-    title: 'Trundler',
+    title: `Trundler v${app.getVersion()}`,
     icon: windowIcon,
     show: false,
     webPreferences: {
@@ -116,6 +116,9 @@ async function createWindow(): Promise<void> {
   })
 
   mainWindow.on('ready-to-show', () => mainWindow?.show())
+
+  // Keep our versioned title — don't let the page's <title> override it.
+  mainWindow.on('page-title-updated', (e) => e.preventDefault())
 
   // Open product links / external URLs in the system browser.
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
