@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, shell } from 'electron'
+import { app, BrowserWindow, ipcMain, shell, Menu } from 'electron'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { loadConfig, saveConfig } from './config.js'
@@ -15,6 +15,8 @@ import type { AgentEvent, AppConfig, AuthStatus, ToolCall } from '../shared/type
 const AUTH_PROVIDERS = new Set(['countdown'])
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url))
+const ICON_DIR = join(__dirname, '../../build')
+const windowIcon = join(ICON_DIR, process.platform === 'win32' ? 'icon.ico' : 'icon.png')
 
 let mainWindow: BrowserWindow | null = null
 const mcp = new TrundlerMcp()
@@ -103,6 +105,7 @@ async function createWindow(): Promise<void> {
     minHeight: 600,
     backgroundColor: '#14161b',
     title: 'Trundler',
+    icon: windowIcon,
     show: false,
     webPreferences: {
       preload: join(__dirname, '../preload/index.mjs'),
@@ -310,6 +313,10 @@ ipcMain.handle('chat:send', async (_e, text: string) => {
 // ---- Lifecycle ------------------------------------------------------------
 
 app.whenReady().then(async () => {
+  Menu.setApplicationMenu(null) // no default File/Edit/View… menu bar
+  if (process.platform === 'darwin' && app.dock) {
+    app.dock.setIcon(join(ICON_DIR, 'icon.png')) // dock icon in dev (packaged uses icns)
+  }
   await boot()
   await createWindow()
   app.on('activate', () => {

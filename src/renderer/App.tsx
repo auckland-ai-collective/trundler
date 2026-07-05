@@ -48,11 +48,16 @@ export function App(): JSX.Element {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
   }, [blocks])
 
-  // Refresh login status whenever the active provider changes.
+  // Refresh login status whenever the active provider changes — and once login
+  // is verified, load the cart so it reflects the real account on startup.
   useEffect(() => {
     const provider = config?.defaultProvider
     if (!provider) return
-    window.trundler.authStatus(provider).then(setAuth)
+    window.trundler.authStatus(provider).then((s) => {
+      setAuth(s)
+      if (s.isLoggedIn) refreshCart(provider)
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [config?.defaultProvider])
 
   function append(b: Block): void {
@@ -141,6 +146,17 @@ export function App(): JSX.Element {
     setApproval(null)
   }
 
+  // A suggested-prompt chip was clicked: send it — but only once logged in
+  // (for providers that need it), otherwise nudge the user to sign in first.
+  function onPickSuggestion(text: string): void {
+    if (auth?.requiresLogin && !auth.isLoggedIn) {
+      setAuthMessage(`Log in to ${config!.defaultProvider} first, then I can shop for you.`)
+      window.setTimeout(() => setAuthMessage(null), 4000)
+      return
+    }
+    send(text)
+  }
+
   async function onAddToCart(sku: string, provider: string): Promise<void> {
     const res = await window.trundler.mcpCall('cart_add', { sku, quantity: 1, provider })
     if (!res.ok) {
@@ -212,7 +228,7 @@ export function App(): JSX.Element {
       <div className="main">
         <div className="chat">
           <div className="messages" ref={scrollRef}>
-            {blocks.length === 0 ? <EmptyState provider={provider} /> : null}
+            {blocks.length === 0 ? <EmptyState provider={provider} onPick={onPickSuggestion} /> : null}
             {blocks.map((b) => (
               <BlockView key={b.id} block={b} canAdd={canAdd} onAdd={onAddToCart} />
             ))}
@@ -287,14 +303,28 @@ function BlockView({
   }
 }
 
-function EmptyState({ provider }: { provider: string }): JSX.Element {
+const SUGGESTIONS = [
+  'Find the cheapest jasmine rice',
+  'What eggs are on special?',
+  'Compare milk prices across chains'
+]
+
+function EmptyState({
+  provider,
+  onPick
+}: {
+  provider: string
+  onPick: (text: string) => void
+}): JSX.Element {
   return (
     <div className="empty">
       <div className="empty-title">What are we shopping for?</div>
       <div className="empty-hints">
-        <span>“Find the cheapest jasmine rice”</span>
-        <span>“What eggs are on special?”</span>
-        <span>“Compare milk prices across chains”</span>
+        {SUGGESTIONS.map((s) => (
+          <button key={s} className="hint-chip" onClick={() => onPick(s)}>
+            {s}
+          </button>
+        ))}
       </div>
       <div className="empty-sub">Provider: {provider}</div>
     </div>

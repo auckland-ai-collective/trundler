@@ -63,8 +63,9 @@ body {
   gap: 8px;
   font-weight: 600;
 }
-.logo {
-  font-size: 18px;
+.brand-icon {
+  display: block;
+  border-radius: 6px;
 }
 .mcp-dot {
   width: 8px;
@@ -183,11 +184,20 @@ button {
   flex-direction: column;
   gap: 6px;
 }
-.empty-hints span {
+.hint-chip {
   background: var(--bg-2);
   border: 1px solid var(--line);
   border-radius: 20px;
-  padding: 6px 14px;
+  padding: 8px 16px;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.hint-chip:hover {
+  border-color: var(--accent);
+  background: var(--bg-3);
 }
 .empty-sub {
   margin-top: 14px;
