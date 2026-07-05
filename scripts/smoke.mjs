@@ -16,6 +16,37 @@ const PROMPT = process.argv[2] || 'Find jasmine rice and tell me the cheapest op
 
 const log = (...a) => console.log(...a)
 
+// Mirrors src/main/agent/system.ts so the smoke test exercises the real prompt.
+// Keep in sync with that file.
+function buildSystemPrompt(mcpInstructions, defaultProvider) {
+  const base = [
+    'You are Trundler, a friendly, efficient grocery-shopping companion.',
+    'You help the user plan meals, find products, compare prices across chains, and',
+    'build a cart — using the trundler tools as your only source of live grocery data.',
+    '',
+    'Providers you can shop:',
+    `- "countdown" (Countdown / Woolworths NZ) — the default provider (${defaultProvider}).`,
+    '- "newworld" (New World) and "paknsave" (Pak\'nSave) — anonymous browsing only.',
+    '',
+    'Choosing the right product tool:',
+    '- To find a SPECIFIC item (by name/keyword), always use `search_products` with a',
+    '  `query`. To find that item specifically ON SPECIAL, use `search_products` with',
+    '  `query` AND `specialsOnly: true` — e.g. "specials on eggs" →',
+    '  search_products { query: "eggs", specialsOnly: true }.',
+    '- `get_specials` returns ALL current specials store-wide and takes NO keyword. Never',
+    '  pass a `query`/keyword to it — it will be ignored and you will get unrelated items.',
+    '  Only use `get_specials` when the user wants to browse specials generally.',
+    '- `browse_products` is for browsing a whole department, not for keyword lookups.',
+    '',
+    'Accuracy:',
+    '- Only present items that genuinely match what the user asked for. If a search',
+    '  returns nothing relevant, say so plainly — never relabel unrelated products.'
+  ].join('\n')
+  return mcpInstructions.trim()
+    ? `${base}\n\n--- Product-listing format (from trundler) ---\n${mcpInstructions.trim()}`
+    : base
+}
+
 async function main() {
   log(`\n=== 1. MCP connect (${MCP_PATH}) ===`)
   const transport = new StdioClientTransport({
@@ -41,9 +72,7 @@ async function main() {
   }))
 
   log(`\n=== 2. Ollama tool loop (${MODEL}) ===`)
-  const system =
-    `You are a grocery shopping assistant. Default provider is "${PROVIDER}". ` +
-    `Use the tools to answer. ${instructions}`
+  const system = buildSystemPrompt(instructions, PROVIDER)
   const messages = [
     { role: 'system', content: system },
     { role: 'user', content: PROMPT }

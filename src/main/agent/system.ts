@@ -22,7 +22,23 @@ export function buildSystemPrompt(mcpInstructions: string, defaultProvider: stri
     '  price-per-unit, not pack price.',
     '- Before adding, updating, or removing cart items, briefly confirm what you are about',
     '  to do. (The app also shows the user an approval prompt for those actions.)',
-    '- Keep replies concise and skimmable. Lead with the answer, then the detail.'
+    '- Keep replies concise and skimmable. Lead with the answer, then the detail.',
+    '',
+    'Choosing the right product tool:',
+    '- To find a SPECIFIC item (by name/keyword), always use `search_products` with a',
+    '  `query`. To find that item specifically ON SPECIAL, use `search_products` with',
+    '  `query` AND `specialsOnly: true` — e.g. "specials on eggs" →',
+    '  search_products { query: "eggs", specialsOnly: true }.',
+    '- `get_specials` returns ALL current specials store-wide and takes NO keyword. Never',
+    '  pass a `query`/keyword to it — it will be ignored and you will get unrelated items.',
+    '  Only use `get_specials` when the user wants to browse specials generally, with no',
+    '  particular product in mind.',
+    '- `browse_products` is for browsing a whole department, not for keyword lookups.',
+    '',
+    'Accuracy:',
+    '- Only present items that genuinely match what the user asked for. If a search',
+    '  returns nothing relevant (e.g. no egg products), say so plainly — never relabel or',
+    '  pass off unrelated products as if they matched the request.'
   ].join('\n')
 
   if (mcpInstructions.trim()) {

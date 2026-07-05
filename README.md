@@ -119,7 +119,8 @@ The cart registers items correctly (the real account updates), but `cart_get` in
 **trundler-mcp** currently returns items without name/price detail — its `cartGet()`
 maps `/api/v1/trolleys/my` fields that don't match the actual response shape. Trundler
 (this app) now shows the item count and totals and flags the missing detail; the full
-fix belongs in the trundler-mcp repo.
+fix belongs in the trundler-mcp repo:
+[auckland-ai-collective/trundler-mcp#1](https://github.com/auckland-ai-collective/trundler-mcp/issues/1).
 
 ## Project layout
 
