@@ -1,9 +1,31 @@
 import { app } from 'electron'
-import { join } from 'node:path'
+import { join, dirname } from 'node:path'
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs'
+import { createRequire } from 'node:module'
 import type { AppConfig } from '../shared/types.js'
 
-const DEFAULT_MCP_PATH = 'D:/Projects/MCP/trundler-mcp/dist/index.js'
+const require = createRequire(import.meta.url)
+const MCP_PACKAGE = '@auckland-ai-collective/trundler-mcp'
+// Fallback only if the package isn't installed (e.g. running from a dev checkout
+// without the dependency). Normal path is resolution from the installed package.
+const LEGACY_MCP_PATH = 'D:/Projects/MCP/trundler-mcp/dist/index.js'
+
+/**
+ * Locate the trundler-mcp stdio server entry. The package's `exports` map blocks
+ * deep imports, so we resolve its package.json (always allowed) and derive
+ * dist/index.js from there. Env var wins for overrides / packaged layouts.
+ */
+function resolveMcpServerPath(): string {
+  if (process.env.TRUNDLER_MCP_PATH) return process.env.TRUNDLER_MCP_PATH
+  try {
+    const pkgJson = require.resolve(`${MCP_PACKAGE}/package.json`)
+    const serverPath = join(dirname(pkgJson), 'dist', 'index.js')
+    if (existsSync(serverPath)) return serverPath
+  } catch {
+    /* package not installed — fall through to legacy path */
+  }
+  return LEGACY_MCP_PATH
+}
 
 function defaults(): AppConfig {
   return {
@@ -18,7 +40,7 @@ function defaults(): AppConfig {
       apiKey: process.env.ANTHROPIC_API_KEY || '',
       model: process.env.TRUNDLER_ANTHROPIC_MODEL || 'claude-sonnet-4-6'
     },
-    mcpServerPath: process.env.TRUNDLER_MCP_PATH || DEFAULT_MCP_PATH,
+    mcpServerPath: resolveMcpServerPath(),
     defaultProvider: process.env.TRUNDLER_PROVIDER || 'countdown'
   }
 }

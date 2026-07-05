@@ -7,8 +7,20 @@
 //
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
+import { createRequire } from 'node:module'
+import { dirname, join } from 'node:path'
 
-const MCP_PATH = process.env.TRUNDLER_MCP_PATH || 'D:/Projects/MCP/trundler-mcp/dist/index.js'
+const require = createRequire(import.meta.url)
+function resolveMcpPath() {
+  if (process.env.TRUNDLER_MCP_PATH) return process.env.TRUNDLER_MCP_PATH
+  try {
+    const pkg = require.resolve('@auckland-ai-collective/trundler-mcp/package.json')
+    return join(dirname(pkg), 'dist', 'index.js')
+  } catch {
+    return 'D:/Projects/MCP/trundler-mcp/dist/index.js'
+  }
+}
+const MCP_PATH = resolveMcpPath()
 const OLLAMA = process.env.OLLAMA_HOST || 'http://localhost:11434'
 const MODEL = process.env.TRUNDLER_OLLAMA_MODEL || 'llama3.1:8b'
 const PROVIDER = process.env.TRUNDLER_PROVIDER || 'countdown'

@@ -1,6 +1,6 @@
 {
   "name": "trundler-app",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "Local grocery-shopping companion: a chat agent (Ollama or Claude) driving the trundler-mcp data layer, wrapped in an Electron desktop app.",
   "author": "Michael Wells <mike@aaic.nz>",
   "license": "MIT",
@@ -14,9 +14,11 @@
     "typecheck:web": "tsc --noEmit -p tsconfig.web.json",
     "typecheck": "npm run typecheck:node && npm run typecheck:web",
     "smoke": "node scripts/smoke.mjs",
+    "libcheck": "node scripts/lib-check.mjs",
     "dist": "electron-vite build && electron-builder"
   },
   "dependencies": {
+    "@auckland-ai-collective/trundler-mcp": "^0.1.5",
     "@modelcontextprotocol/sdk": "^1.12.0"
   },
   "devDependencies": {
@@ -38,8 +40,12 @@
   "build": {
     "appId": "com.sygnal.trundler",
     "productName": "Trundler",
-    "files": ["out/**/*"],
-    "win": { "target": "nsis" }
+    "files": [
+      "out/**/*"
+    ],
+    "win": {
+      "target": "nsis"
+    }
   },
   "engines": {
     "node": ">=20"
