@@ -45,4 +45,6 @@ export interface AuthStatus {
   isLoggedIn: boolean
   email: string | null
   expiresAt: string | null
+  /** Set when the most recent login attempt failed, so the UI can surface it. */
+  error?: string | null
 }

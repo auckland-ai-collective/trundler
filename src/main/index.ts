@@ -241,14 +241,26 @@ ipcMain.handle('auth:status', (_e, provider: string) => getAuthStatus(provider))
 
 ipcMain.handle('auth:login', async (_e, provider: string) => {
   logger?.event('auth-login-start', { provider })
+  let loginError: string | null = null
   try {
-    await mcp.callTool('login', { provider }) // opens a browser; blocks until done
+    // trundler returns tool failures as a normal result with an `error` field
+    // (not a thrown exception), so inspect the result rather than only catching.
+    const result = await mcp.callTool('login', { provider }) // opens a browser; blocks until done
+    if (result && typeof result === 'object' && 'error' in (result as object)) {
+      loginError = String((result as { error: unknown }).error)
+    }
   } catch (err) {
-    logger?.event('auth-login-error', { provider, error: err instanceof Error ? err.message : String(err) })
+    loginError = err instanceof Error ? err.message : String(err)
   }
+  if (loginError) logger?.event('auth-login-error', { provider, error: loginError })
   const status = await getAuthStatus(provider)
-  logger?.event('auth-login-done', { provider, isLoggedIn: status.isLoggedIn, email: status.email })
-  return status
+  logger?.event('auth-login-done', {
+    provider,
+    isLoggedIn: status.isLoggedIn,
+    email: status.email,
+    error: loginError
+  })
+  return { ...status, error: loginError }
 })
 
 ipcMain.handle('auth:logout', async (_e, provider: string) => {

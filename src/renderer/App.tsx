@@ -184,11 +184,17 @@ export function App(): JSX.Element {
       'A browser window is opening — complete sign-in there. First-time sign-in may download a browser (~150 MB), which can take a minute.'
     )
     try {
-      setAuth(await window.trundler.authLogin(p))
-      refreshCart(p)
+      const status = await window.trundler.authLogin(p)
+      setAuth(status)
+      if (status.error) setAuthMessage(`Login failed: ${status.error}`)
+      else if (status.isLoggedIn) {
+        setAuthMessage(null)
+        refreshCart(p)
+      } else setAuthMessage('Sign-in was not completed. Click Log in to try again.')
+    } catch (err) {
+      setAuthMessage(`Login failed: ${err instanceof Error ? err.message : String(err)}`)
     } finally {
       setAuthBusy(false)
-      setAuthMessage(null)
     }
   }
 
