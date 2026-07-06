@@ -123,6 +123,27 @@ body {
   font-size: 11px;
   color: var(--text-dim);
 }
+.ctl.toggle {
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text);
+  cursor: pointer;
+}
+.ctl.toggle input {
+  margin-top: 2px;
+  width: 15px;
+  height: 15px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+.ctl.toggle small {
+  display: block;
+  color: var(--text-dim);
+  font-size: 11px;
+  margin-top: 2px;
+}
 
 button {
   cursor: pointer;

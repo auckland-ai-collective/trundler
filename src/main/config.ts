@@ -41,7 +41,8 @@ function defaults(): AppConfig {
       model: process.env.TRUNDLER_ANTHROPIC_MODEL || 'claude-sonnet-4-6'
     },
     mcpServerPath: resolveMcpServerPath(),
-    defaultProvider: process.env.TRUNDLER_PROVIDER || 'countdown'
+    defaultProvider: process.env.TRUNDLER_PROVIDER || 'countdown',
+    requireCartApproval: process.env.TRUNDLER_CART_APPROVAL !== 'off'
   }
 }
 

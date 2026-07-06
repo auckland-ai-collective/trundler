@@ -306,11 +306,17 @@ ipcMain.handle('chat:send', async (_e, text: string) => {
         onToolResult: (call, ok, data) =>
           emit({ type: 'tool-result', id: call.id, name: call.name, ok, provider: providerOf(call), data }),
         callTool: (name, args) => mcp.callTool(name, args),
-        requestApproval: (call) =>
-          new Promise<boolean>((resolve) => {
+        requestApproval: (call) => {
+          // Approval gate is user-configurable; when off, auto-approve mutations.
+          if (!config.requireCartApproval) {
+            logger?.event('approval-auto', { name: call.name, args: call.args })
+            return Promise.resolve(true)
+          }
+          return new Promise<boolean>((resolve) => {
             pendingApprovals.set(call.id, resolve)
             emit({ type: 'approval', id: call.id, call })
           })
+        }
       },
       currentRun.signal
     )

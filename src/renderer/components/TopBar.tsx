@@ -119,6 +119,17 @@ export function TopBar({
               </label>
             </>
           )}
+          <label className="ctl toggle">
+            <input
+              type="checkbox"
+              checked={config.requireCartApproval}
+              onChange={(e) => patch({ requireCartApproval: e.target.checked })}
+            />
+            <span>
+              Ask before changing the cart
+              <small>Approve each add/update/remove. Off = the agent updates the cart directly.</small>
+            </span>
+          </label>
           <label className="ctl wide">
             MCP server path
             <input

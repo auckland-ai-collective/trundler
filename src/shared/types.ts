@@ -15,6 +15,8 @@ export interface AppConfig {
   mcpServerPath: string
   /** Default grocery provider the agent should assume. */
   defaultProvider: string
+  /** Require user approval before cart_add/update/remove (on by default). */
+  requireCartApproval: boolean
 }
 
 export interface ToolCall {
