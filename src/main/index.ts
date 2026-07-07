@@ -7,7 +7,7 @@ import { OllamaBackend } from './agent/ollamaBackend.js'
 import { AnthropicBackend } from './agent/anthropicBackend.js'
 import { runAgent } from './agent/loop.js'
 import { buildSystemPrompt } from './agent/system.js'
-import { Logger, debugEnabled } from './logger.js'
+import { Logger, forcedDebug } from './logger.js'
 import type { Backend, ChatMessage } from './agent/types.js'
 import type { AgentEvent, AppConfig, AuthStatus, ToolCall } from '../shared/types.js'
 
@@ -135,7 +135,7 @@ async function createWindow(): Promise<void> {
 
 async function boot(): Promise<void> {
   config = loadConfig()
-  logger = new Logger(debugEnabled())
+  logger = new Logger(config.debugLogging || forcedDebug())
   try {
     await mcp.connect(config.mcpServerPath, process.execPath)
     systemPrompt = buildSystemPrompt(mcp.instructions, config.defaultProvider)
@@ -168,6 +168,14 @@ ipcMain.handle('config:set', (_e, next: AppConfig) => {
   config = next
   saveConfig(config)
   systemPrompt = buildSystemPrompt(mcp.instructions, config.defaultProvider)
+
+  // Apply the debug-logging setting (a CLI flag / env can still force it on).
+  const wasEnabled = logger?.enabled
+  logger?.setEnabled(config.debugLogging || forcedDebug())
+  if (logger?.enabled && !wasEnabled) {
+    logger.event('logging-enabled', { appVersion: app.getVersion(), ...modelInfo(config) })
+  }
+
   const after = modelInfo(config)
   if (before.backend !== after.backend || before.model !== after.model) {
     logger?.event('backend-change', { from: before, to: after, provider: config.defaultProvider })

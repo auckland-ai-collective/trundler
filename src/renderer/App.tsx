@@ -168,7 +168,8 @@ export function App(): JSX.Element {
 
   function onConfigChange(next: AppConfig): void {
     setConfig(next)
-    window.trundler.setConfig(next)
+    // Re-read debug state so the footer appears/disappears with the setting.
+    window.trundler.setConfig(next).then(() => window.trundler.getDebugInfo().then(setDebug))
   }
 
   function onNewChat(): void {

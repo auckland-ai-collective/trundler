@@ -92,10 +92,12 @@ World and Pak'nSave need no login (anonymous, read-only).
 
 ## Configuration
 
-Everything is settable in-app (⚙︎ in the top bar): brain (Ollama/Claude), model, Ollama
-host, Claude API key, MCP server path, and default provider. Defaults can also come from
-env vars — see [`.env.example`](.env.example). Settings persist to `config.json` in the
-app's userData directory.
+Brain (Ollama/Claude) and provider are quick switches in the top bar. The ⚙︎ drawer
+holds the rest — model, Ollama host, Claude API key, MCP server path, and the
+cart-approval and debug-logging toggles — and edits there apply only when you press
+**Save** (Cancel discards). Defaults can also come from env vars — see
+[`.env.example`](.env.example). Settings persist to `config.json` in the app's userData
+directory.
 
 **MCP path:** by default the app resolves the server from the installed
 `@auckland-ai-collective/trundler-mcp` package automatically — no path to set. Override
@@ -117,9 +119,10 @@ cart state, approvals, and errors. One file per app run in the app's
 `userData/logs/` directory (use the **open logs** button in the debug footer, or
 `shell` reveal).
 
-- **On automatically in dev** (`npm run dev`).
-- **In production**, enable with `--debug` or `TRUNDLER_DEBUG=1` so a user can capture
-  and send you their logs:
+- **Off by default.** Turn it on with the **Debug logging** toggle in ⚙︎ Settings; the
+  footer line (with an **open logs** button) appears only while it's on.
+- **`--debug` or `TRUNDLER_DEBUG=1`** force it on regardless of the setting, so a user can
+  capture and send you logs without touching Settings:
   ```
   Trundler.exe --debug
   ```

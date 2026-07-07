@@ -29,9 +29,38 @@ export function TopBar({
   onLogout
 }: Props): JSX.Element {
   const [open, setOpen] = useState(false)
+  // Drawer edits go to a draft and only persist on Save (Cancel discards).
+  const [draft, setDraft] = useState<AppConfig | null>(null)
 
+  // Immediate persistence for the top-bar quick switches (Provider / Brain).
   function patch(p: Partial<AppConfig>): void {
     onChange({ ...config, ...p })
+  }
+
+  function openDrawer(): void {
+    setDraft(structuredClone(config))
+    setOpen(true)
+  }
+  function closeDrawer(): void {
+    setOpen(false)
+    setDraft(null)
+  }
+  function dpatch(p: Partial<AppConfig>): void {
+    setDraft((d) => (d ? { ...d, ...p } : d))
+  }
+  function saveDrawer(): void {
+    if (draft) {
+      // Keep the live Provider/Brain; commit only the drawer-managed fields.
+      onChange({
+        ...config,
+        ollama: draft.ollama,
+        anthropic: draft.anthropic,
+        mcpServerPath: draft.mcpServerPath,
+        requireCartApproval: draft.requireCartApproval,
+        debugLogging: draft.debugLogging
+      })
+    }
+    closeDrawer()
   }
 
   return (
@@ -67,7 +96,7 @@ export function TopBar({
 
         <AuthControl auth={auth} busy={authBusy} onLogin={onLogin} onLogout={onLogout} />
 
-        <button className="ghost" onClick={() => setOpen((v) => !v)}>
+        <button className="ghost" onClick={() => (open ? closeDrawer() : openDrawer())}>
           ⚙︎
         </button>
         <button className="ghost" onClick={onNewChat}>
@@ -75,23 +104,23 @@ export function TopBar({
         </button>
       </div>
 
-      {open ? (
+      {open && draft ? (
         <div className="settings-drawer">
           {config.backend === 'ollama' ? (
             <>
               <label className="ctl wide">
                 Ollama model
                 <input
-                  value={config.ollama.model}
-                  onChange={(e) => patch({ ollama: { ...config.ollama, model: e.target.value } })}
+                  value={draft.ollama.model}
+                  onChange={(e) => dpatch({ ollama: { ...draft.ollama, model: e.target.value } })}
                   placeholder="llama3.1:8b"
                 />
               </label>
               <label className="ctl wide">
                 Ollama host
                 <input
-                  value={config.ollama.baseUrl}
-                  onChange={(e) => patch({ ollama: { ...config.ollama, baseUrl: e.target.value } })}
+                  value={draft.ollama.baseUrl}
+                  onChange={(e) => dpatch({ ollama: { ...draft.ollama, baseUrl: e.target.value } })}
                 />
               </label>
             </>
@@ -100,9 +129,9 @@ export function TopBar({
               <label className="ctl wide">
                 Claude model
                 <input
-                  value={config.anthropic.model}
+                  value={draft.anthropic.model}
                   onChange={(e) =>
-                    patch({ anthropic: { ...config.anthropic, model: e.target.value } })
+                    dpatch({ anthropic: { ...draft.anthropic, model: e.target.value } })
                   }
                 />
               </label>
@@ -110,37 +139,81 @@ export function TopBar({
                 API key
                 <input
                   type="password"
-                  value={config.anthropic.apiKey}
+                  value={draft.anthropic.apiKey}
                   onChange={(e) =>
-                    patch({ anthropic: { ...config.anthropic, apiKey: e.target.value } })
+                    dpatch({ anthropic: { ...draft.anthropic, apiKey: e.target.value } })
                   }
                   placeholder="sk-ant-…"
                 />
               </label>
             </>
           )}
-          <label className="ctl toggle">
-            <input
-              type="checkbox"
-              checked={config.requireCartApproval}
-              onChange={(e) => patch({ requireCartApproval: e.target.checked })}
-            />
-            <span>
-              Ask before changing the cart
-              <small>Approve each add/update/remove. Off = the agent updates the cart directly.</small>
-            </span>
-          </label>
+
+          <Toggle
+            label="Ask before changing the cart"
+            hint="Approve each add/update/remove. Off = the agent updates the cart directly."
+            checked={draft.requireCartApproval}
+            onChange={(v) => dpatch({ requireCartApproval: v })}
+          />
+          <Toggle
+            label="Debug logging"
+            hint="Record a session log for troubleshooting. Off by default."
+            checked={draft.debugLogging}
+            onChange={(v) => dpatch({ debugLogging: v })}
+          />
+
           <label className="ctl wide">
             MCP server path
             <input
-              value={config.mcpServerPath}
-              onChange={(e) => patch({ mcpServerPath: e.target.value })}
+              value={draft.mcpServerPath}
+              onChange={(e) => dpatch({ mcpServerPath: e.target.value })}
             />
           </label>
           <div className="drawer-note">MCP path changes take effect on app restart.</div>
+
+          <div className="drawer-actions">
+            <button className="ghost" onClick={closeDrawer}>
+              Cancel
+            </button>
+            <button className="primary" onClick={saveDrawer}>
+              Save
+            </button>
+          </div>
         </div>
       ) : null}
     </header>
+  )
+}
+
+/** A pill toggle switch (used instead of checkboxes for on/off settings). */
+function Toggle({
+  label,
+  hint,
+  checked,
+  onChange
+}: {
+  label: string
+  hint?: string
+  checked: boolean
+  onChange: (v: boolean) => void
+}): JSX.Element {
+  return (
+    <div className="switch-row">
+      <span className="switch-text">
+        {label}
+        {hint ? <small>{hint}</small> : null}
+      </span>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={checked}
+        aria-label={label}
+        className={`switch ${checked ? 'on' : ''}`}
+        onClick={() => onChange(!checked)}
+      >
+        <span className="switch-knob" />
+      </button>
+    </div>
   )
 }
 

@@ -55,6 +55,17 @@ export class Logger {
     console.log(`[log] ${type} ${consolePreview(data)}`)
   }
 
+  /** Turn logging on/off at runtime (from the Settings toggle). */
+  setEnabled(on: boolean): void {
+    if (on === this.enabled) return
+    this.enabled = on
+    if (on) {
+      if (!this.stream) this.open()
+    } else {
+      this.close()
+    }
+  }
+
   info(): { enabled: boolean; path: string } {
     return { enabled: this.enabled, path: this.filePath }
   }
@@ -73,13 +84,10 @@ export class Logger {
   }
 }
 
-/** Whether debug logging should be on for this run. */
-export function debugEnabled(): boolean {
-  return (
-    !app.isPackaged ||
-    process.argv.includes('--debug') ||
-    process.env.TRUNDLER_DEBUG === '1'
-  )
+/** Whether a CLI flag / env var forces logging on regardless of the setting.
+ *  (The normal control is the Settings toggle → config.debugLogging.) */
+export function forcedDebug(): boolean {
+  return process.argv.includes('--debug') || process.env.TRUNDLER_DEBUG === '1'
 }
 
 const MAX_STRING = 2000

@@ -42,7 +42,8 @@ function defaults(): AppConfig {
     },
     mcpServerPath: resolveMcpServerPath(),
     defaultProvider: process.env.TRUNDLER_PROVIDER || 'countdown',
-    requireCartApproval: process.env.TRUNDLER_CART_APPROVAL !== 'off'
+    requireCartApproval: process.env.TRUNDLER_CART_APPROVAL !== 'off',
+    debugLogging: process.env.TRUNDLER_DEBUG === '1'
   }
 }
 

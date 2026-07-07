@@ -17,6 +17,8 @@ export interface AppConfig {
   defaultProvider: string
   /** Require user approval before cart_add/update/remove (on by default). */
   requireCartApproval: boolean
+  /** Write a structured session log for troubleshooting (off by default). */
+  debugLogging: boolean
 }
 
 export interface ToolCall {
