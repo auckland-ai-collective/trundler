@@ -145,6 +145,7 @@ async function boot(): Promise<void> {
       ...modelInfo(config),
       provider: config.defaultProvider,
       mcpServerPath: config.mcpServerPath,
+      mcpVersion: mcp.serverInfo?.version,
       tools: mcp.getTools().length,
       toolNames: mcp.getTools().map((t) => t.name),
       systemPrompt

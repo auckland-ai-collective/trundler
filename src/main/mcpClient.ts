@@ -15,6 +15,8 @@ export class TrundlerMcp {
   private serverPath = ''
   private nodePath = ''
   instructions = ''
+  /** {name, version} the connected MCP server reports at initialize. */
+  serverInfo: { name?: string; version?: string } | undefined
 
   async connect(serverPath: string, nodePath: string): Promise<void> {
     this.serverPath = serverPath
@@ -36,8 +38,12 @@ export class TrundlerMcp {
 
     // Server-level presentation instructions (letter labels, price-per-unit,
     // cheapest-first). Surface them to the model verbatim.
-    const anyClient = this.client as unknown as { getInstructions?: () => string | undefined }
+    const anyClient = this.client as unknown as {
+      getInstructions?: () => string | undefined
+      getServerVersion?: () => { name?: string; version?: string } | undefined
+    }
     this.instructions = anyClient.getInstructions?.() ?? ''
+    this.serverInfo = anyClient.getServerVersion?.()
 
     const listed = await this.client.listTools()
     this.tools = listed.tools.map((t) => ({
