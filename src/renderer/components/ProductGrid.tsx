@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import type { Product } from '../../shared/types.js'
-import { letterLabel, sortProducts, unitPriceLabel, type ProductSort } from '../blocks.js'
+import { letterLabel, sortProducts, unitPriceLabel, upsizeImage, type ProductSort } from '../blocks.js'
+import { Lightbox } from './Lightbox.js'
 
 interface Props {
   products: Product[]
@@ -13,6 +14,7 @@ interface Props {
 export function ProductGrid({ products, provider, query, canAdd, onAdd }: Props): JSX.Element {
   // Default to cheapest-per-unit first; the toggle restores provider order.
   const [sort, setSort] = useState<ProductSort>('unit')
+  const [zoom, setZoom] = useState<Product | null>(null)
   const canSortByUnit = useMemo(() => products.some((p) => p.unitPrice != null), [products])
   const ordered = useMemo(() => sortProducts(products, sort), [products, sort])
 
@@ -44,7 +46,14 @@ export function ProductGrid({ products, provider, query, canAdd, onAdd }: Props)
           <div className="product-card" key={`${p.sku}-${i}`}>
             <div className="product-label">{letterLabel(i)}</div>
             {p.image ? (
-              <img className="product-img" src={p.image} alt="" loading="lazy" />
+              <img
+                className="product-img"
+                src={p.image}
+                alt=""
+                loading="lazy"
+                title="Click to enlarge"
+                onClick={() => setZoom(p)}
+              />
             ) : (
               <div className="product-img placeholder" />
             )}
@@ -78,6 +87,14 @@ export function ProductGrid({ products, provider, query, canAdd, onAdd }: Props)
           )
         })}
       </div>
+      {zoom?.image ? (
+        <Lightbox
+          src={upsizeImage(zoom.image)}
+          alt={zoom.name}
+          caption={zoom.name}
+          onClose={() => setZoom(null)}
+        />
+      ) : null}
     </div>
   )
 }

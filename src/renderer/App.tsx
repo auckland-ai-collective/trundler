@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { AgentEvent, AppConfig, AuthStatus, Cart, ToolCall } from '../shared/types.js'
 import { CART_TOOLS, PRODUCT_TOOLS, extractProducts, type Block } from './blocks.js'
 import { renderMarkdown } from './lib/markdown.js'
@@ -275,6 +275,19 @@ export function App(): JSX.Element {
     }
   }
 
+  // cart_get carries no image, so map SKU -> image from products seen in the
+  // session's search grids and use it to decorate cart lines.
+  const skuImages = useMemo(() => {
+    const map: Record<string, string> = {}
+    for (const b of blocks) {
+      if (b.kind !== 'products') continue
+      for (const p of b.products) {
+        if (p.sku && p.image && !map[p.sku]) map[p.sku] = p.image
+      }
+    }
+    return map
+  }, [blocks])
+
   if (!config) return <div className="loading">Starting Trundler…</div>
 
   const provider = config.defaultProvider
@@ -310,6 +323,7 @@ export function App(): JSX.Element {
           cart={cart}
           provider={provider}
           note={cartNote}
+          images={skuImages}
           loading={cartLoading}
           busy={cartBusy}
           updatedAt={cartUpdatedAt}

@@ -110,6 +110,23 @@ export function sortProducts(products: Product[], mode: ProductSort): Product[] 
     .map((x) => x.p)
 }
 
+/**
+ * Countdown/Woolworths product images are served by a resizer where the pixel
+ * size is just the `w`/`h` query params, e.g.
+ *   https://assets.woolworths.com.au/images/2010/{stockcode}.jpg?impolicy=wowcdxwbjbx&w=200&h=200
+ * The path is keyed by stockcode, which is the product/cart `sku` — so any
+ * item's image is addressable directly, and any URL can be re-rendered larger.
+ */
+export function countdownImage(sku: string, size = 200): string {
+  return `https://assets.woolworths.com.au/images/2010/${sku}.jpg?impolicy=wowcdxwbjbx&w=${size}&h=${size}`
+}
+
+/** Re-render a Woolworths image URL at `size` px by rewriting its w/h query.
+ *  URLs without those params (e.g. other providers) are returned unchanged. */
+export function upsizeImage(url: string, size = 900): string {
+  return url.replace(/([?&][wh]=)\d+/g, (_m, prefix) => `${prefix}${size}`)
+}
+
 /** Assign stable A, B, C … AA, AB labels to products for easy quantity-picking. */
 export function letterLabel(i: number): string {
   let n = i
