@@ -1,6 +1,6 @@
 {
   "name": "trundler-app",
-  "version": "0.1.16",
+  "version": "0.1.17",
   "description": "Local grocery-shopping companion: a chat agent (Ollama or Claude) driving the trundler-mcp data layer, wrapped in an Electron desktop app.",
   "author": "Michael Wells <mike@aaic.nz>",
   "license": "MIT",

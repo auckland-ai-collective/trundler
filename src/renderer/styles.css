@@ -32,6 +32,29 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* ---- Scrollbars (app-wide, dark, thin) ---- */
+* {
+  scrollbar-width: thin; /* Firefox */
+  scrollbar-color: var(--line) transparent;
+}
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--line);
+  border-radius: 8px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #3a4051; /* one step lighter than --line for hover affordance */
+}
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
 .app {
   display: flex;
   flex-direction: column;
