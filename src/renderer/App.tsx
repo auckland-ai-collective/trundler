@@ -181,7 +181,15 @@ export function App(): JSX.Element {
   }
 
   function onAddToCart(sku: string, provider: string): void {
-    void mutateCart('cart_add', { sku, quantity: 1, provider }, 'Add failed', provider)
+    // "cart_add" sets an absolute quantity (it's not additive), so adding an
+    // item that's already in the cart would reset it to 1. Increment instead.
+    const existing = cart?.items.find((it) => it.sku === sku)
+    if (existing) {
+      const quantity = (existing.quantity ?? 1) + 1
+      void mutateCart('cart_update', { sku, quantity, unit: existing.unit, provider }, 'Add failed', provider)
+    } else {
+      void mutateCart('cart_add', { sku, quantity: 1, provider }, 'Add failed', provider)
+    }
   }
 
   function onRemoveFromCart(sku: string, unit: string | undefined, provider: string): void {
