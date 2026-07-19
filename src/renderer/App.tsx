@@ -30,6 +30,9 @@ export function App(): JSX.Element {
   // Id of the assistant block currently receiving streamed text (null = none open).
   const openAssistant = useRef<string | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
+  // Whether the message list is pinned to the bottom. While true, new content
+  // auto-scrolls into view; once the user scrolls up, we leave their view alone.
+  const stickToBottom = useRef(true)
   const configRef = useRef<AppConfig | null>(null)
   configRef.current = config
 
@@ -46,8 +49,21 @@ export function App(): JSX.Element {
   }, [])
 
   useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
+    if (!stickToBottom.current) return
+    const el = scrollRef.current
+    // Instant (not smooth): streamed tokens update this many times a second, and
+    // a smooth animation never settles — plus its mid-flight scroll events would
+    // read as "user scrolled up" and unpin us.
+    el?.scrollTo({ top: el.scrollHeight })
   }, [blocks])
+
+  // Re-evaluate the pin on every user scroll. Anything but flush-against the
+  // bottom (small slack for sub-pixel rounding) counts as "reading up".
+  function onMessagesScroll(): void {
+    const el = scrollRef.current
+    if (!el) return
+    stickToBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight < 40
+  }
 
   // Refresh login status whenever the active provider changes — and once login
   // is verified, load the cart so it reflects the real account on startup.
@@ -136,6 +152,9 @@ export function App(): JSX.Element {
   }
 
   function send(text: string): void {
+    // Sending is an explicit "take me to the conversation" action — re-pin so
+    // the user's message and the incoming reply scroll into view.
+    stickToBottom.current = true
     append({ kind: 'user', id: uid(), text })
     openAssistant.current = null
     setRunning(true)
@@ -278,7 +297,7 @@ export function App(): JSX.Element {
 
       <div className="main">
         <div className="chat">
-          <div className="messages" ref={scrollRef}>
+          <div className="messages" ref={scrollRef} onScroll={onMessagesScroll}>
             {blocks.length === 0 ? <EmptyState provider={provider} onPick={onPickSuggestion} /> : null}
             {blocks.map((b) => (
               <BlockView key={b.id} block={b} canAdd={canAdd} onAdd={onAddToCart} />
