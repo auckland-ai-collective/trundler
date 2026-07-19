@@ -499,6 +499,10 @@ button {
 }
 .price {
   font-weight: 700;
+  color: var(--text);
+}
+/* Green price = on special, so the colour reliably signals a deal. */
+.price.special {
   color: var(--accent);
 }
 .was {
@@ -510,6 +514,11 @@ button {
   font-size: 11px;
   color: var(--text-dim);
   width: 100%;
+}
+.savings {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent);
 }
 .multibuy {
   font-size: 11px;

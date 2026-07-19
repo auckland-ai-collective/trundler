@@ -3,6 +3,17 @@ import type { Product } from '../../shared/types.js'
 import { letterLabel, sortProducts, unitPriceLabel, upsizeImage, type ProductSort } from '../blocks.js'
 import { Lightbox } from './Lightbox.js'
 
+/** "Save $2.00 (20%)" from whichever of the two the provider gave us. Null when
+ *  neither is a positive number, so specials without a stated saving stay clean. */
+function savingsLabel(savings?: number, percent?: number): string | null {
+  const hasDollar = typeof savings === 'number' && savings > 0
+  const hasPercent = typeof percent === 'number' && percent > 0
+  if (hasDollar && hasPercent) return `Save $${savings.toFixed(2)} (${Math.round(percent)}%)`
+  if (hasDollar) return `Save $${savings.toFixed(2)}`
+  if (hasPercent) return `Save ${Math.round(percent)}%`
+  return null
+}
+
 interface Props {
   products: Product[]
   provider: string
@@ -56,6 +67,12 @@ export function ProductGrid({
           // Only an explicit `false` means out of stock; `undefined` = unknown
           // (some providers don't report availability) and stays purchasable.
           const outOfStock = p.inStock === false
+          // Green price + "was" + savings only for genuine specials, so green
+          // reliably signals a deal rather than colouring every price.
+          const onSpecial = p.isSpecial === true
+          const savingsText = onSpecial ? savingsLabel(p.savings, p.savingsPercent) : null
+          const showWas =
+            onSpecial && p.originalPrice != null && p.price != null && p.originalPrice > p.price
           return (
           <div className={`product-card${outOfStock ? ' oos' : ''}`} key={`${p.sku}-${i}`}>
             <div className="product-label">{letterLabel(i)}</div>
@@ -78,12 +95,13 @@ export function ProductGrid({
               </div>
               {p.size ? <div className="product-size">{p.size}</div> : null}
               <div className="product-prices">
-                {p.price != null ? <span className="price">${p.price.toFixed(2)}</span> : null}
-                {p.isSpecial && p.originalPrice != null ? (
-                  <span className="was">${p.originalPrice.toFixed(2)}</span>
+                {p.price != null ? (
+                  <span className={`price${onSpecial ? ' special' : ''}`}>${p.price.toFixed(2)}</span>
                 ) : null}
+                {showWas ? <span className="was">${p.originalPrice!.toFixed(2)}</span> : null}
                 {unit ? <span className="unit">{unit}</span> : null}
               </div>
+              {savingsText ? <div className="savings">{savingsText}</div> : null}
               {p.multiBuy ? <div className="multibuy">{p.multiBuy}</div> : null}
               <div className="product-actions">
                 {p.productUrl ? (
