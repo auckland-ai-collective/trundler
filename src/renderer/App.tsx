@@ -20,6 +20,7 @@ export function App(): JSX.Element {
   const [cart, setCart] = useState<Cart | null>(null)
   const [cartNote, setCartNote] = useState<string | null>(null)
   const [cartLoading, setCartLoading] = useState(false)
+  const [cartBusy, setCartBusy] = useState(false)
   const [cartUpdatedAt, setCartUpdatedAt] = useState<string | null>(null)
   const [debug, setDebug] = useState<{ enabled: boolean; path: string }>({ enabled: false, path: '' })
   const [auth, setAuth] = useState<AuthStatus | null>(null)
@@ -157,13 +158,48 @@ export function App(): JSX.Element {
     send(text)
   }
 
-  async function onAddToCart(sku: string, provider: string): Promise<void> {
-    const res = await window.trundler.mcpCall('cart_add', { sku, quantity: 1, provider })
-    if (!res.ok) {
-      const msg = (res.data as { error?: string })?.error ?? 'Add failed'
-      append({ kind: 'error', id: uid(), text: msg })
+  // Cart mutations initiated directly from the UI (product grid, cart panel).
+  // These bypass the agent approval gate on purpose: the user is performing the
+  // action themselves, so a second confirmation would be redundant.
+  async function mutateCart(
+    tool: string,
+    args: Record<string, unknown>,
+    failMsg: string,
+    provider: string
+  ): Promise<void> {
+    setCartBusy(true)
+    try {
+      const res = await window.trundler.mcpCall(tool, args)
+      if (!res.ok) {
+        const msg = (res.data as { error?: string })?.error ?? failMsg
+        append({ kind: 'error', id: uid(), text: msg })
+      }
+      await refreshCart(provider)
+    } finally {
+      setCartBusy(false)
     }
-    refreshCart(provider)
+  }
+
+  function onAddToCart(sku: string, provider: string): void {
+    void mutateCart('cart_add', { sku, quantity: 1, provider }, 'Add failed', provider)
+  }
+
+  function onRemoveFromCart(sku: string, unit: string | undefined, provider: string): void {
+    void mutateCart('cart_remove', { sku, unit, provider }, 'Remove failed', provider)
+  }
+
+  function onChangeQuantity(
+    sku: string,
+    quantity: number,
+    unit: string | undefined,
+    provider: string
+  ): void {
+    // cart_update rejects quantity <= 0 — removing is the intended outcome there.
+    if (quantity <= 0) {
+      onRemoveFromCart(sku, unit, provider)
+      return
+    }
+    void mutateCart('cart_update', { sku, quantity, unit, provider }, 'Update failed', provider)
   }
 
   function onConfigChange(next: AppConfig): void {
@@ -248,8 +284,11 @@ export function App(): JSX.Element {
           provider={provider}
           note={cartNote}
           loading={cartLoading}
+          busy={cartBusy}
           updatedAt={cartUpdatedAt}
           onRefresh={() => refreshCart(provider)}
+          onRemove={onRemoveFromCart}
+          onChangeQty={onChangeQuantity}
         />
       </div>
 

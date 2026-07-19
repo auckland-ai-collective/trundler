@@ -5,15 +5,29 @@ interface Props {
   provider: string
   note: string | null
   loading: boolean
+  /** A cart mutation is in flight — disable the per-item controls. */
+  busy: boolean
   updatedAt: string | null
   onRefresh: () => void
+  onRemove: (sku: string, unit: string | undefined, provider: string) => void
+  onChangeQty: (sku: string, quantity: number, unit: string | undefined, provider: string) => void
 }
 
 function isDetailed(it: CartItem): boolean {
   return Boolean(it && (it.name || it.sku))
 }
 
-export function CartPanel({ cart, provider, note, loading, updatedAt, onRefresh }: Props): JSX.Element {
+export function CartPanel({
+  cart,
+  provider,
+  note,
+  loading,
+  busy,
+  updatedAt,
+  onRefresh,
+  onRemove,
+  onChangeQty
+}: Props): JSX.Element {
   const items = cart?.items ?? []
   const totals = cart?.totals ?? {}
   const detailed = items.filter(isDetailed)
@@ -44,18 +58,51 @@ export function CartPanel({ cart, provider, note, loading, updatedAt, onRefresh 
         </div>
       ) : (
         <ul className="cart-items">
-          {detailed.map((it, i) => (
-            <li key={`${it.sku ?? 'x'}-${i}`} className="cart-item">
-              <div className="cart-item-name">{it.name ?? it.sku}</div>
-              <div className="cart-item-meta">
-                <span>
-                  {it.quantity ?? 1}
-                  {it.unit && it.unit !== 'Each' ? ` ${it.unit}` : '×'}
-                </span>
-                {it.subtotal != null ? <span>{formatMoney(it.subtotal)}</span> : null}
-              </div>
-            </li>
-          ))}
+          {detailed.map((it, i) => {
+            const qty = it.quantity ?? 1
+            const unitLabel = it.unit && it.unit !== 'Each' ? ` ${it.unit}` : ''
+            return (
+              <li key={`${it.sku ?? 'x'}-${i}`} className="cart-item">
+                <div className="cart-item-top">
+                  <div className="cart-item-name">{it.name ?? it.sku}</div>
+                  <button
+                    className="cart-item-remove"
+                    title="Remove from cart"
+                    aria-label={`Remove ${it.name ?? it.sku} from cart`}
+                    disabled={busy}
+                    onClick={() => onRemove(it.sku, it.unit, provider)}
+                  >
+                    ×
+                  </button>
+                </div>
+                <div className="cart-item-meta">
+                  <div className="qty-stepper">
+                    <button
+                      title="Decrease quantity"
+                      aria-label="Decrease quantity"
+                      disabled={busy}
+                      onClick={() => onChangeQty(it.sku, qty - 1, it.unit, provider)}
+                    >
+                      −
+                    </button>
+                    <span className="qty-value">
+                      {qty}
+                      {unitLabel}
+                    </span>
+                    <button
+                      title="Increase quantity"
+                      aria-label="Increase quantity"
+                      disabled={busy}
+                      onClick={() => onChangeQty(it.sku, qty + 1, it.unit, provider)}
+                    >
+                      +
+                    </button>
+                  </div>
+                  {it.subtotal != null ? <span>{formatMoney(it.subtotal)}</span> : null}
+                </div>
+              </li>
+            )
+          })}
         </ul>
       )}
 

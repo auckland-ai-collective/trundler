@@ -503,14 +503,73 @@ button {
   border-bottom: 1px solid var(--line);
   padding-bottom: 6px;
 }
+.cart-item-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 6px;
+}
 .cart-item-name {
   font-size: 13px;
+}
+.cart-item-remove {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  line-height: 1;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 15px;
+  cursor: pointer;
+}
+.cart-item-remove:hover:not(:disabled) {
+  background: rgba(224, 107, 107, 0.15);
+  color: var(--danger);
 }
 .cart-item-meta {
   display: flex;
   justify-content: space-between;
+  align-items: center;
+  margin-top: 5px;
   font-size: 11px;
   color: var(--text-dim);
+}
+.qty-stepper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.qty-stepper button {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--bg-3);
+  color: var(--text);
+  font-size: 13px;
+  cursor: pointer;
+}
+.qty-stepper button:hover:not(:disabled) {
+  border-color: var(--accent-2);
+}
+.cart-item-remove:disabled,
+.qty-stepper button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.qty-value {
+  min-width: 22px;
+  text-align: center;
+  color: var(--text);
+  font-size: 12px;
 }
 .cart-totals {
   border-top: 1px solid var(--line);
