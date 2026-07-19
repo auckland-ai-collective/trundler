@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import type { Cart, CartItem } from '../../shared/types.js'
 
 interface Props {
@@ -28,12 +29,20 @@ export function CartPanel({
   onRemove,
   onChangeQty
 }: Props): JSX.Element {
+  const [filter, setFilter] = useState('')
   const items = cart?.items ?? []
   const totals = cart?.totals ?? {}
   const detailed = items.filter(isDetailed)
   const count = totals.itemCount ?? items.length
   // trundler-mcp may report a count without per-item detail (see cart mapping bug).
   const detailMissing = count > 0 && detailed.length === 0
+
+  const query = filter.trim().toLowerCase()
+  const visible = query
+    ? detailed.filter((it) => `${it.name ?? ''} ${it.sku ?? ''}`.toLowerCase().includes(query))
+    : detailed
+  // Only offer the filter once there are enough items for it to be useful.
+  const showFilter = detailed.length > 3
 
   return (
     <aside className="cart-panel">
@@ -47,6 +56,29 @@ export function CartPanel({
       {updatedAt ? <div className="cart-updated">updated {updatedAt}</div> : null}
       {note ? <div className="cart-note">{note}</div> : null}
 
+      {showFilter ? (
+        <div className="cart-filter">
+          <input
+            type="text"
+            className="cart-filter-input"
+            placeholder="Filter items…"
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+            aria-label="Filter cart items"
+          />
+          {filter ? (
+            <button
+              className="cart-filter-clear"
+              title="Clear filter"
+              aria-label="Clear filter"
+              onClick={() => setFilter('')}
+            >
+              ×
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+
       {cart == null ? (
         <div className="cart-empty">Refresh to load your cart.</div>
       ) : count === 0 ? (
@@ -56,9 +88,11 @@ export function CartPanel({
           {count} item{count === 1 ? '' : 's'} in cart. Per-item detail isn’t available from the
           provider yet — check totals below.
         </div>
+      ) : visible.length === 0 ? (
+        <div className="cart-empty">No items match “{filter.trim()}”.</div>
       ) : (
         <ul className="cart-items">
-          {detailed.map((it, i) => {
+          {visible.map((it, i) => {
             const qty = it.quantity ?? 1
             const unitLabel = it.unit && it.unit !== 'Each' ? ` ${it.unit}` : ''
             return (
