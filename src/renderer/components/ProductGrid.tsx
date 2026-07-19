@@ -53,9 +53,13 @@ export function ProductGrid({
       <div className="product-grid">
         {ordered.map((p, i) => {
           const unit = unitPriceLabel(p)
+          // Only an explicit `false` means out of stock; `undefined` = unknown
+          // (some providers don't report availability) and stays purchasable.
+          const outOfStock = p.inStock === false
           return (
-          <div className="product-card" key={`${p.sku}-${i}`}>
+          <div className={`product-card${outOfStock ? ' oos' : ''}`} key={`${p.sku}-${i}`}>
             <div className="product-label">{letterLabel(i)}</div>
+            {outOfStock ? <div className="oos-badge">Out of stock</div> : null}
             {p.image ? (
               <img
                 className="product-img"
@@ -108,7 +112,12 @@ export function ProductGrid({
                     </button>
                   ) : null}
                   {canAdd ? (
-                    <button className="add-btn" onClick={() => onAdd(p.sku, provider)}>
+                    <button
+                      className="add-btn"
+                      disabled={outOfStock}
+                      title={outOfStock ? 'Out of stock' : undefined}
+                      onClick={() => onAdd(p.sku, provider)}
+                    >
                       + add
                     </button>
                   ) : null}

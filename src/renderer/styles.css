@@ -424,6 +424,37 @@ button {
   flex-direction: column;
   gap: 6px;
 }
+/* Out of stock: dim the visuals (still readable) and flag it unmistakably. */
+.product-card.oos .product-img {
+  filter: grayscale(0.8);
+  opacity: 0.5;
+}
+.product-card.oos .product-name,
+.product-card.oos .product-size,
+.product-card.oos .product-prices,
+.product-card.oos .multibuy {
+  opacity: 0.55;
+}
+.oos-badge {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 1;
+  background: var(--danger);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  border-radius: 5px;
+  padding: 2px 6px;
+}
+.add-btn:disabled,
+.add-btn:disabled:hover {
+  opacity: 0.4;
+  cursor: default;
+  border-color: var(--line);
+}
 .product-label {
   position: absolute;
   top: 6px;
