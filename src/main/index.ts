@@ -6,10 +6,11 @@ import { TrundlerMcp } from './mcpClient.js'
 import { OllamaBackend } from './agent/ollamaBackend.js'
 import { AnthropicBackend } from './agent/anthropicBackend.js'
 import { runAgent } from './agent/loop.js'
-import { buildSystemPrompt } from './agent/system.js'
+import { buildSystemPrompt, favoritesPromptSection } from './agent/system.js'
+import { loadFavorites, toggleFavorite, removeFavorite } from './favorites.js'
 import { Logger, forcedDebug } from './logger.js'
 import type { Backend, ChatMessage } from './agent/types.js'
-import type { AgentEvent, AppConfig, AuthStatus, ToolCall } from '../shared/types.js'
+import type { AgentEvent, AppConfig, AuthStatus, Favorite, Product, ToolCall } from '../shared/types.js'
 
 /** Providers that use a login session (others are anonymous / read-only). */
 const AUTH_PROVIDERS = new Set(['countdown'])
@@ -22,6 +23,7 @@ let mainWindow: BrowserWindow | null = null
 const mcp = new TrundlerMcp()
 let config: AppConfig = { backend: 'ollama' } as AppConfig
 let history: ChatMessage[] = []
+let favorites: Favorite[] = []
 let systemPrompt = ''
 let currentRun: AbortController | null = null
 let logger: Logger
@@ -135,6 +137,7 @@ async function createWindow(): Promise<void> {
 
 async function boot(): Promise<void> {
   config = loadConfig()
+  favorites = loadFavorites()
   logger = new Logger(config.debugLogging || forcedDebug())
   try {
     await mcp.connect(config.mcpServerPath, process.execPath)
@@ -182,6 +185,16 @@ ipcMain.handle('config:set', (_e, next: AppConfig) => {
     logger?.event('backend-change', { from: before, to: after, provider: config.defaultProvider })
   }
   return config
+})
+
+ipcMain.handle('favorites:get', () => favorites)
+ipcMain.handle('favorites:toggle', (_e, provider: string, product: Product) => {
+  favorites = toggleFavorite(favorites, provider, product)
+  return favorites
+})
+ipcMain.handle('favorites:remove', (_e, provider: string, sku: string) => {
+  favorites = removeFavorite(favorites, provider, sku)
+  return favorites
 })
 
 ipcMain.handle('debug:info', () => logger?.info() ?? { enabled: false, path: '' })
@@ -303,10 +316,15 @@ ipcMain.handle('chat:send', async (_e, text: string) => {
   currentRun = new AbortController()
   logger?.event('user-message', { text, ...modelInfo(config), provider: config.defaultProvider })
 
+  // Append the current favorites so the agent can act on "my favorites" without
+  // a lookup. Built per-send so it always reflects the live list.
+  const favSection = favoritesPromptSection(favorites)
+  const prompt = favSection ? `${systemPrompt}\n\n${favSection}` : systemPrompt
+
   try {
     await runAgent(
       backend,
-      systemPrompt,
+      prompt,
       history,
       mcp.getTools(),
       {

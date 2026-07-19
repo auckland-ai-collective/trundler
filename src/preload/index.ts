@@ -1,10 +1,16 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { AgentEvent, AppConfig, AuthStatus, ToolInfo } from '../shared/types.js'
+import type { AgentEvent, AppConfig, AuthStatus, Favorite, Product, ToolInfo } from '../shared/types.js'
 
 const api = {
   getConfig: (): Promise<AppConfig> => ipcRenderer.invoke('config:get'),
   setConfig: (cfg: AppConfig): Promise<AppConfig> => ipcRenderer.invoke('config:set', cfg),
   listTools: (): Promise<ToolInfo[]> => ipcRenderer.invoke('tools:list'),
+
+  getFavorites: (): Promise<Favorite[]> => ipcRenderer.invoke('favorites:get'),
+  toggleFavorite: (provider: string, product: Product): Promise<Favorite[]> =>
+    ipcRenderer.invoke('favorites:toggle', provider, product),
+  removeFavorite: (provider: string, sku: string): Promise<Favorite[]> =>
+    ipcRenderer.invoke('favorites:remove', provider, sku),
 
   send: (text: string): Promise<void> => ipcRenderer.invoke('chat:send', text),
   cancel: (): Promise<void> => ipcRenderer.invoke('chat:cancel'),

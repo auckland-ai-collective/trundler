@@ -46,3 +46,28 @@ export function buildSystemPrompt(mcpInstructions: string, defaultProvider: stri
   }
   return base
 }
+
+/** An addendum listing the user's saved favorites, appended to the system prompt
+ *  at send time so the agent can act on "my favorites" without a lookup. Empty
+ *  string when there are none. */
+export function favoritesPromptSection(
+  favorites: { name?: string; sku: string; provider: string; price?: number }[]
+): string {
+  if (!favorites.length) return ''
+  const lines = favorites.map((f) => {
+    const price = typeof f.price === 'number' ? `, last seen $${f.price.toFixed(2)}` : ''
+    return `- ${f.name ?? f.sku} — provider: ${f.provider}, sku: ${f.sku}${price}`
+  })
+  return [
+    "--- The user's saved favorites ---",
+    'These are products the user has favorited. When they say "my favorites" / "favourites",',
+    'they mean exactly these items:',
+    ...lines,
+    '',
+    '- To add a favorite to the cart, call cart_add with its exact `sku` and `provider` — no',
+    '  search is needed, you already have the SKU.',
+    '- To check current price or whether a favorite is on special, call search_products with',
+    "  the product's name (and specialsOnly when relevant), then match the result by sku.",
+    '- "Last seen" prices above may be stale — confirm with a live tool before quoting them.'
+  ].join('\n')
+}

@@ -63,7 +63,7 @@ export function CartPanel({
   const showFilter = detailed.length > 3
 
   return (
-    <aside className="cart-panel">
+    <>
       <div className="cart-head">
         <span>Cart · {provider}</span>
         <button className="ghost" onClick={onRefresh} title="Refresh cart" disabled={loading}>
@@ -201,7 +201,7 @@ export function CartPanel({
       {zoom ? (
         <Lightbox src={zoom.src} alt={zoom.name} caption={zoom.name} onClose={() => setZoom(null)} />
       ) : null}
-    </aside>
+    </>
   )
 }
 

@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import type { AgentEvent, AppConfig, AuthStatus, Cart, ToolCall } from '../shared/types.js'
+import type { AgentEvent, AppConfig, AuthStatus, Cart, Favorite, Product, ToolCall } from '../shared/types.js'
 import { CART_TOOLS, PRODUCT_TOOLS, extractProducts, type Block } from './blocks.js'
 import { renderMarkdown } from './lib/markdown.js'
 import { TopBar } from './components/TopBar.js'
 import { Composer } from './components/Composer.js'
-import { CartPanel } from './components/CartPanel.js'
+import { SidePanel } from './components/SidePanel.js'
 import { ProductGrid } from './components/ProductGrid.js'
 import { ApprovalModal } from './components/ApprovalModal.js'
 
@@ -26,6 +26,7 @@ export function App(): JSX.Element {
   const [auth, setAuth] = useState<AuthStatus | null>(null)
   const [authBusy, setAuthBusy] = useState(false)
   const [authMessage, setAuthMessage] = useState<string | null>(null)
+  const [favorites, setFavorites] = useState<Favorite[]>([])
 
   // Id of the assistant block currently receiving streamed text (null = none open).
   const openAssistant = useRef<string | null>(null)
@@ -40,6 +41,7 @@ export function App(): JSX.Element {
     window.trundler.getConfig().then(setConfig)
     window.trundler.listTools().then((t) => setToolCount(t.length))
     window.trundler.getDebugInfo().then(setDebug)
+    window.trundler.getFavorites().then(setFavorites)
   }, [])
 
   useEffect(() => {
@@ -218,6 +220,14 @@ export function App(): JSX.Element {
     void mutateCart('cart_remove', { sku, unit, provider }, 'Remove failed', provider)
   }
 
+  function onToggleFavorite(product: Product, provider: string): void {
+    window.trundler.toggleFavorite(provider, product).then(setFavorites)
+  }
+
+  function onRemoveFavorite(provider: string, sku: string): void {
+    window.trundler.removeFavorite(provider, sku).then(setFavorites)
+  }
+
   function onChangeQuantity(
     sku: string,
     quantity: number,
@@ -295,6 +305,9 @@ export function App(): JSX.Element {
 
   const provider = config.defaultProvider
   const canAdd = provider === 'countdown'
+  // "provider:sku" keys for every favorite — drives the filled heart on cards,
+  // correct even when a grid shows a provider other than the active one.
+  const favoriteKeys = new Set(favorites.map((f) => `${f.provider}:${f.sku}`))
 
   return (
     <div className="app">
@@ -316,13 +329,20 @@ export function App(): JSX.Element {
           <div className="messages" ref={scrollRef} onScroll={onMessagesScroll}>
             {blocks.length === 0 ? <EmptyState provider={provider} onPick={onPickSuggestion} /> : null}
             {blocks.map((b) => (
-              <BlockView key={b.id} block={b} canAdd={canAdd} onAdd={onAddToCart} />
+              <BlockView
+                key={b.id}
+                block={b}
+                canAdd={canAdd}
+                onAdd={onAddToCart}
+                favoriteKeys={favoriteKeys}
+                onToggleFavorite={onToggleFavorite}
+              />
             ))}
           </div>
           <Composer running={running} onSend={send} onCancel={() => window.trundler.cancel()} />
         </div>
 
-        <CartPanel
+        <SidePanel
           cart={cart}
           provider={provider}
           note={cartNote}
@@ -333,6 +353,10 @@ export function App(): JSX.Element {
           onRefresh={() => refreshCart(provider)}
           onRemove={onRemoveFromCart}
           onChangeQty={onChangeQuantity}
+          favorites={favorites}
+          canAdd={canAdd}
+          onAdd={onAddToCart}
+          onRemoveFavorite={onRemoveFavorite}
         />
       </div>
 
@@ -354,11 +378,15 @@ export function App(): JSX.Element {
 function BlockView({
   block,
   canAdd,
-  onAdd
+  onAdd,
+  favoriteKeys,
+  onToggleFavorite
 }: {
   block: Block
   canAdd: boolean
   onAdd: (sku: string, provider: string) => void
+  favoriteKeys: Set<string>
+  onToggleFavorite: (product: Product, provider: string) => void
 }): JSX.Element {
   switch (block.kind) {
     case 'user':
@@ -386,6 +414,8 @@ function BlockView({
           query={block.query}
           canAdd={canAdd && block.provider === 'countdown'}
           onAdd={onAdd}
+          favoriteKeys={favoriteKeys}
+          onToggleFavorite={onToggleFavorite}
         />
       )
     case 'error':

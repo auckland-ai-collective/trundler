@@ -3,7 +3,12 @@
 // Grocery domain types come from the MCP package — single source of truth.
 // Type-only re-export: erased at compile time, so it never pulls the package
 // (or its Playwright graph) into the renderer bundle.
+import type { Product } from '@auckland-ai-collective/trundler-mcp'
 export type { Product, Cart, CartItem, CartTotals } from '@auckland-ai-collective/trundler-mcp'
+
+/** A product the user has favorited — a full snapshot (so the favorites view
+ *  needs no live lookup) plus which provider it came from and when it was saved. */
+export type Favorite = Product & { provider: string; addedAt: string }
 
 export type BackendId = 'ollama' | 'anthropic'
 

@@ -505,8 +505,34 @@ button {
 .add-btn:hover {
   border-color: var(--accent);
 }
+.fav-btn {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 15px;
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+}
+.fav-btn:hover {
+  background: rgba(224, 107, 107, 0.15);
+  color: var(--danger);
+}
+.fav-btn.on {
+  color: var(--danger);
+}
 
-/* ---- Cart panel ---- */
+/* ---- Right panel (Cart / Favorites tabs) ---- */
 .cart-panel {
   width: 260px;
   border-left: 1px solid var(--line);
@@ -515,6 +541,34 @@ button {
   flex-direction: column;
   padding: 12px;
   gap: 10px;
+}
+.side-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 8px;
+}
+.side-tab {
+  flex: 1;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--bg-3);
+  color: var(--text-dim);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+.side-tab:hover {
+  color: var(--text);
+  border-color: var(--accent-2);
+}
+.side-tab.on {
+  color: var(--text);
+  background: var(--bg-2);
+  border-color: var(--accent);
 }
 .cart-head {
   display: flex;

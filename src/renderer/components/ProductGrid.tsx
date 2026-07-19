@@ -9,9 +9,20 @@ interface Props {
   query?: string
   canAdd: boolean
   onAdd: (sku: string, provider: string) => void
+  /** "provider:sku" keys of favorited items — controls the filled heart. */
+  favoriteKeys: Set<string>
+  onToggleFavorite: (product: Product, provider: string) => void
 }
 
-export function ProductGrid({ products, provider, query, canAdd, onAdd }: Props): JSX.Element {
+export function ProductGrid({
+  products,
+  provider,
+  query,
+  canAdd,
+  onAdd,
+  favoriteKeys,
+  onToggleFavorite
+}: Props): JSX.Element {
   // Default to cheapest-per-unit first; the toggle restores provider order.
   const [sort, setSort] = useState<ProductSort>('unit')
   const [zoom, setZoom] = useState<Product | null>(null)
@@ -45,6 +56,22 @@ export function ProductGrid({ products, provider, query, canAdd, onAdd }: Props)
           return (
           <div className="product-card" key={`${p.sku}-${i}`}>
             <div className="product-label">{letterLabel(i)}</div>
+            {p.sku ? (
+              (() => {
+                const faved = favoriteKeys.has(`${provider}:${p.sku}`)
+                return (
+                  <button
+                    className={`fav-btn${faved ? ' on' : ''}`}
+                    title={faved ? 'Remove from favorites' : 'Add to favorites'}
+                    aria-label={faved ? 'Remove from favorites' : 'Add to favorites'}
+                    aria-pressed={faved}
+                    onClick={() => onToggleFavorite(p, provider)}
+                  >
+                    {faved ? '♥' : '♡'}
+                  </button>
+                )
+              })()
+            ) : null}
             {p.image ? (
               <img
                 className="product-img"
