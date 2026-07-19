@@ -56,22 +56,6 @@ export function ProductGrid({
           return (
           <div className="product-card" key={`${p.sku}-${i}`}>
             <div className="product-label">{letterLabel(i)}</div>
-            {p.sku ? (
-              (() => {
-                const faved = favoriteKeys.has(`${provider}:${p.sku}`)
-                return (
-                  <button
-                    className={`fav-btn${faved ? ' on' : ''}`}
-                    title={faved ? 'Remove from favorites' : 'Add to favorites'}
-                    aria-label={faved ? 'Remove from favorites' : 'Add to favorites'}
-                    aria-pressed={faved}
-                    onClick={() => onToggleFavorite(p, provider)}
-                  >
-                    {faved ? '♥' : '♡'}
-                  </button>
-                )
-              })()
-            ) : null}
             {p.image ? (
               <img
                 className="product-img"
@@ -103,11 +87,32 @@ export function ProductGrid({
                     view
                   </a>
                 ) : null}
-                {canAdd ? (
-                  <button className="add-btn" onClick={() => onAdd(p.sku, provider)}>
-                    + add
-                  </button>
-                ) : null}
+                <div className="product-actions-right">
+                  {p.sku ? (
+                    <button
+                      className={`fav-btn${favoriteKeys.has(`${provider}:${p.sku}`) ? ' on' : ''}`}
+                      title={
+                        favoriteKeys.has(`${provider}:${p.sku}`)
+                          ? 'Remove from favorites'
+                          : 'Add to favorites'
+                      }
+                      aria-label={
+                        favoriteKeys.has(`${provider}:${p.sku}`)
+                          ? 'Remove from favorites'
+                          : 'Add to favorites'
+                      }
+                      aria-pressed={favoriteKeys.has(`${provider}:${p.sku}`)}
+                      onClick={() => onToggleFavorite(p, provider)}
+                    >
+                      {favoriteKeys.has(`${provider}:${p.sku}`) ? '♥' : '♡'}
+                    </button>
+                  ) : null}
+                  {canAdd ? (
+                    <button className="add-btn" onClick={() => onAdd(p.sku, provider)}>
+                      + add
+                    </button>
+                  ) : null}
+                </div>
               </div>
             </div>
           </div>

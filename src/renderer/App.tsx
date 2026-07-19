@@ -354,8 +354,10 @@ export function App(): JSX.Element {
           onRemove={onRemoveFromCart}
           onChangeQty={onChangeQuantity}
           favorites={favorites}
+          favoriteKeys={favoriteKeys}
           canAdd={canAdd}
           onAdd={onAddToCart}
+          onToggleFavorite={onToggleFavorite}
           onRemoveFavorite={onRemoveFavorite}
         />
       </div>

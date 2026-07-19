@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import type { Cart, CartItem } from '../../shared/types.js'
+import type { Cart, CartItem, Product } from '../../shared/types.js'
 import { countdownImage, upsizeImage } from '../blocks.js'
 import { Lightbox } from './Lightbox.js'
 
@@ -16,6 +16,9 @@ interface Props {
   onRefresh: () => void
   onRemove: (sku: string, unit: string | undefined, provider: string) => void
   onChangeQty: (sku: string, quantity: number, unit: string | undefined, provider: string) => void
+  /** "provider:sku" keys of favorited items — controls the filled heart. */
+  favoriteKeys: Set<string>
+  onToggleFavorite: (product: Product, provider: string) => void
 }
 
 function isDetailed(it: CartItem): boolean {
@@ -44,7 +47,9 @@ export function CartPanel({
   updatedAt,
   onRefresh,
   onRemove,
-  onChangeQty
+  onChangeQty,
+  favoriteKeys,
+  onToggleFavorite
 }: Props): JSX.Element {
   const [filter, setFilter] = useState('')
   const [zoom, setZoom] = useState<{ src: string; name: string } | null>(null)
@@ -171,7 +176,36 @@ export function CartPanel({
                       +
                     </button>
                   </div>
-                  {it.subtotal != null ? <span>{formatMoney(it.subtotal)}</span> : null}
+                  <div className="cart-item-meta-right">
+                    {it.subtotal != null ? <span>{formatMoney(it.subtotal)}</span> : null}
+                    <button
+                      className={`fav-btn${favoriteKeys.has(`${provider}:${it.sku}`) ? ' on' : ''}`}
+                      title={
+                        favoriteKeys.has(`${provider}:${it.sku}`)
+                          ? 'Remove from favorites'
+                          : 'Add to favorites'
+                      }
+                      aria-label={
+                        favoriteKeys.has(`${provider}:${it.sku}`)
+                          ? 'Remove from favorites'
+                          : 'Add to favorites'
+                      }
+                      aria-pressed={favoriteKeys.has(`${provider}:${it.sku}`)}
+                      onClick={() =>
+                        onToggleFavorite(
+                          {
+                            sku: it.sku,
+                            name: it.name ?? it.sku,
+                            price: typeof it.price === 'number' ? it.price : undefined,
+                            image: img
+                          },
+                          provider
+                        )
+                      }
+                    >
+                      {favoriteKeys.has(`${provider}:${it.sku}`) ? '♥' : '♡'}
+                    </button>
+                  </div>
                 </div>
               </li>
             )

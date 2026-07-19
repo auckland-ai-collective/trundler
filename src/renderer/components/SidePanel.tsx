@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import type { Cart, Favorite } from '../../shared/types.js'
+import type { Cart, Favorite, Product } from '../../shared/types.js'
 import { CartPanel } from './CartPanel.js'
 import { FavoritesPanel } from './FavoritesPanel.js'
 
@@ -15,8 +15,10 @@ interface Props {
   onRemove: (sku: string, unit: string | undefined, provider: string) => void
   onChangeQty: (sku: string, quantity: number, unit: string | undefined, provider: string) => void
   favorites: Favorite[]
+  favoriteKeys: Set<string>
   canAdd: boolean
   onAdd: (sku: string, provider: string) => void
+  onToggleFavorite: (product: Product, provider: string) => void
   onRemoveFavorite: (provider: string, sku: string) => void
 }
 
@@ -60,6 +62,8 @@ export function SidePanel(props: Props): JSX.Element {
           onRefresh={props.onRefresh}
           onRemove={props.onRemove}
           onChangeQty={props.onChangeQty}
+          favoriteKeys={props.favoriteKeys}
+          onToggleFavorite={props.onToggleFavorite}
         />
       ) : (
         <FavoritesPanel
