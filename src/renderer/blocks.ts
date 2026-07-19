@@ -29,6 +29,29 @@ export function extractProducts(data: unknown): Product[] | null {
   return null
 }
 
+export type ProductSort = 'unit' | 'default'
+
+/**
+ * Order products for display. 'unit' sorts by price-per-unit ascending
+ * (cheapest value first); items with no unit price sink to the bottom while
+ * keeping their original relative order. 'default' preserves the provider's
+ * order (usually search relevance). Stable, and never mutates the input.
+ */
+export function sortProducts(products: Product[], mode: ProductSort): Product[] {
+  if (mode === 'default') return products
+  return products
+    .map((p, i) => ({ p, i }))
+    .sort((a, b) => {
+      const av = a.p.unitPrice
+      const bv = b.p.unitPrice
+      if (av == null && bv == null) return a.i - b.i
+      if (av == null) return 1
+      if (bv == null) return -1
+      return av - bv || a.i - b.i
+    })
+    .map((x) => x.p)
+}
+
 /** Assign stable A, B, C … AA, AB labels to products for easy quantity-picking. */
 export function letterLabel(i: number): string {
   let n = i

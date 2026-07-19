@@ -1,5 +1,6 @@
+import { useMemo, useState } from 'react'
 import type { Product } from '../../shared/types.js'
-import { letterLabel } from '../blocks.js'
+import { letterLabel, sortProducts, type ProductSort } from '../blocks.js'
 
 interface Props {
   products: Product[]
@@ -15,14 +16,34 @@ function unitLine(p: Product): string | null {
 }
 
 export function ProductGrid({ products, provider, query, canAdd, onAdd }: Props): JSX.Element {
+  // Default to cheapest-per-unit first; the toggle restores provider order.
+  const [sort, setSort] = useState<ProductSort>('unit')
+  const canSortByUnit = useMemo(() => products.some((p) => p.unitPrice != null), [products])
+  const ordered = useMemo(() => sortProducts(products, sort), [products, sort])
+
   return (
     <div className="products">
       <div className="products-head">
-        {query ? `“${query}” · ` : ''}
-        {products.length} item{products.length === 1 ? '' : 's'} · {provider}
+        <span>
+          {query ? `“${query}” · ` : ''}
+          {products.length} item{products.length === 1 ? '' : 's'} · {provider}
+        </span>
+        {canSortByUnit ? (
+          <button
+            className="sort-toggle"
+            title={
+              sort === 'unit'
+                ? 'Sorted by price per unit (lowest first) — click for provider order'
+                : 'Provider order — click to sort by price per unit'
+            }
+            onClick={() => setSort((s) => (s === 'unit' ? 'default' : 'unit'))}
+          >
+            {sort === 'unit' ? '↑ per unit' : '≡ default'}
+          </button>
+        ) : null}
       </div>
       <div className="product-grid">
-        {products.map((p, i) => (
+        {ordered.map((p, i) => (
           <div className="product-card" key={`${p.sku}-${i}`}>
             <div className="product-label">{letterLabel(i)}</div>
             {p.image ? (

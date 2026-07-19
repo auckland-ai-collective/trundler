@@ -364,9 +364,27 @@ button {
   max-width: 900px;
 }
 .products-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
   font-size: 12px;
   color: var(--text-dim);
   margin-bottom: 8px;
+}
+.sort-toggle {
+  flex: none;
+  padding: 2px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--bg-3);
+  color: var(--text-dim);
+  font-size: 11px;
+  cursor: pointer;
+}
+.sort-toggle:hover {
+  border-color: var(--accent-2);
+  color: var(--text);
 }
 .product-grid {
   display: grid;
