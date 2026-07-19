@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import type { Product } from '../../shared/types.js'
-import { letterLabel, sortProducts, type ProductSort } from '../blocks.js'
+import { letterLabel, sortProducts, unitPriceLabel, type ProductSort } from '../blocks.js'
 
 interface Props {
   products: Product[]
@@ -8,11 +8,6 @@ interface Props {
   query?: string
   canAdd: boolean
   onAdd: (sku: string, provider: string) => void
-}
-
-function unitLine(p: Product): string | null {
-  if (p.unitPrice == null || !p.unitMeasure) return null
-  return `$${p.unitPrice.toFixed(2)} / ${p.unitMeasure}`
 }
 
 export function ProductGrid({ products, provider, query, canAdd, onAdd }: Props): JSX.Element {
@@ -43,7 +38,9 @@ export function ProductGrid({ products, provider, query, canAdd, onAdd }: Props)
         ) : null}
       </div>
       <div className="product-grid">
-        {ordered.map((p, i) => (
+        {ordered.map((p, i) => {
+          const unit = unitPriceLabel(p)
+          return (
           <div className="product-card" key={`${p.sku}-${i}`}>
             <div className="product-label">{letterLabel(i)}</div>
             {p.image ? (
@@ -61,7 +58,7 @@ export function ProductGrid({ products, provider, query, canAdd, onAdd }: Props)
                 {p.isSpecial && p.originalPrice != null ? (
                   <span className="was">${p.originalPrice.toFixed(2)}</span>
                 ) : null}
-                {unitLine(p) ? <span className="unit">{unitLine(p)}</span> : null}
+                {unit ? <span className="unit">{unit}</span> : null}
               </div>
               {p.multiBuy ? <div className="multibuy">{p.multiBuy}</div> : null}
               <div className="product-actions">
@@ -78,7 +75,8 @@ export function ProductGrid({ products, provider, query, canAdd, onAdd }: Props)
               </div>
             </div>
           </div>
-        ))}
+          )
+        })}
       </div>
     </div>
   )
