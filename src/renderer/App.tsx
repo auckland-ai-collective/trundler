@@ -189,9 +189,12 @@ export function App(): JSX.Element {
     setCartBusy(true)
     try {
       const res = await window.trundler.mcpCall(tool, args)
-      if (!res.ok) {
-        const msg = (res.data as { error?: string })?.error ?? failMsg
-        append({ kind: 'error', id: uid(), text: msg })
+      const data = res.data as { error?: string; success?: boolean } | undefined
+      // A mutation can come back ok:true yet success:false — e.g. the store
+      // rejects an invalid quantity (a fractional weight for a whole-unit
+      // produce item). Surface that instead of silently no-op'ing.
+      if (!res.ok || data?.success === false) {
+        append({ kind: 'error', id: uid(), text: data?.error ?? failMsg })
       }
       await refreshCart(provider)
     } finally {

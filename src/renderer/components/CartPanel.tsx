@@ -22,6 +22,18 @@ function isDetailed(it: CartItem): boolean {
   return Boolean(it && (it.name || it.sku))
 }
 
+/**
+ * Next quantity for a stepper click. Weight-sold items (unit 'Kg') step by whole
+ * kilograms and snap to round values, so a 0.3 Kg produce item lands cleanly on
+ * 1 Kg, 2 Kg… rather than an awkward 1.3 Kg — which stores reject for loose
+ * produce sold in whole-unit increments, making the button appear to do nothing.
+ * 'Each' (and any other unit) keep a simple ±1 step.
+ */
+function stepQty(qty: number, unit: string | undefined, dir: 1 | -1): number {
+  if (unit === 'Kg') return dir === 1 ? Math.floor(qty) + 1 : Math.ceil(qty) - 1
+  return qty + dir
+}
+
 export function CartPanel({
   cart,
   provider,
@@ -142,7 +154,7 @@ export function CartPanel({
                       title="Decrease quantity"
                       aria-label="Decrease quantity"
                       disabled={busy}
-                      onClick={() => onChangeQty(it.sku, qty - 1, it.unit, provider)}
+                      onClick={() => onChangeQty(it.sku, stepQty(qty, it.unit, -1), it.unit, provider)}
                     >
                       −
                     </button>
@@ -154,7 +166,7 @@ export function CartPanel({
                       title="Increase quantity"
                       aria-label="Increase quantity"
                       disabled={busy}
-                      onClick={() => onChangeQty(it.sku, qty + 1, it.unit, provider)}
+                      onClick={() => onChangeQty(it.sku, stepQty(qty, it.unit, 1), it.unit, provider)}
                     >
                       +
                     </button>
