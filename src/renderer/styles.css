@@ -200,6 +200,157 @@ body {
   border-top: 1px solid var(--line);
 }
 
+/* ---- Settings drawer: tabs ---- */
+.drawer-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--line);
+  margin: -2px 0 4px;
+}
+.drawer-tab {
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-dim);
+  padding: 6px 10px;
+  font-size: 13px;
+}
+.drawer-tab:hover {
+  color: var(--text);
+}
+.drawer-tab.active {
+  color: var(--text);
+  border-bottom-color: var(--accent);
+}
+/* Highlight whichever gear owns the open tab. */
+.ghost.gear.active {
+  background: var(--bg-3);
+  border-color: var(--accent);
+}
+
+/* ---- Model picker ---- */
+.picker-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+.link-btn {
+  background: transparent;
+  border: none;
+  color: var(--accent);
+  font-size: 12px;
+  padding: 2px 4px;
+}
+.link-btn:disabled {
+  color: var(--text-dim);
+  cursor: default;
+}
+.model-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.model-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-align: left;
+  background: var(--bg-3);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 7px 10px;
+  color: var(--text);
+  font-size: 13px;
+}
+.model-row:hover:not(.disabled) {
+  border-color: var(--accent);
+}
+.model-row.selected {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 14%, var(--bg-3));
+}
+.model-row.disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+.model-radio {
+  flex-shrink: 0;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  border: 2px solid var(--text-dim);
+}
+.model-row.selected .model-radio {
+  border-color: var(--accent);
+  background: radial-gradient(circle, var(--accent) 0 40%, transparent 45%);
+}
+.model-name {
+  font-family: var(--mono, ui-monospace, monospace);
+  flex: 1;
+}
+.model-badge {
+  font-size: 12px;
+}
+.model-note {
+  color: var(--text-dim);
+  font-size: 11px;
+}
+.model-others {
+  font-size: 12px;
+}
+.model-others summary {
+  color: var(--text-dim);
+  cursor: pointer;
+  padding: 2px 0;
+}
+.model-others .model-list {
+  margin-top: 6px;
+}
+.msg.error.compact {
+  font-size: 12px;
+  padding: 8px 10px;
+}
+
+/* ---- Recommended downloads ---- */
+.reco {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border-top: 1px solid var(--line);
+  padding-top: 8px;
+}
+.reco-head {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+.reco-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 2px 8px;
+  background: var(--bg-3);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 7px 10px;
+}
+.reco-main {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.reco-note {
+  grid-column: 1;
+  color: var(--text-dim);
+  font-size: 11px;
+}
+.reco-row .link-btn {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  white-space: nowrap;
+}
+
 button {
   cursor: pointer;
   font-family: inherit;

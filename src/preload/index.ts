@@ -1,10 +1,20 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { AgentEvent, AppConfig, AuthStatus, Favorite, Product, ToolInfo } from '../shared/types.js'
+import type {
+  AgentEvent,
+  AppConfig,
+  AuthStatus,
+  Favorite,
+  OllamaModelsResult,
+  Product,
+  ToolInfo
+} from '../shared/types.js'
 
 const api = {
   getConfig: (): Promise<AppConfig> => ipcRenderer.invoke('config:get'),
   setConfig: (cfg: AppConfig): Promise<AppConfig> => ipcRenderer.invoke('config:set', cfg),
   listTools: (): Promise<ToolInfo[]> => ipcRenderer.invoke('tools:list'),
+  listOllamaModels: (baseUrl?: string): Promise<OllamaModelsResult> =>
+    ipcRenderer.invoke('ollama:models', baseUrl),
 
   getFavorites: (): Promise<Favorite[]> => ipcRenderer.invoke('favorites:get'),
   toggleFavorite: (provider: string, product: Product): Promise<Favorite[]> =>

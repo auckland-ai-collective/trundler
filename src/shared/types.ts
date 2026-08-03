@@ -32,6 +32,36 @@ export interface ToolCall {
   args: Record<string, unknown>
 }
 
+// ---- Ollama model discovery ------------------------------------------------
+
+/** A model installed locally in Ollama, with its declared capabilities. */
+export interface OllamaModelInfo {
+  name: string
+  /** On-disk size in bytes (from /api/tags); 0 if unknown. */
+  sizeBytes: number
+  /** Capability tags from /api/show (e.g. "tools", "vision", "thinking"). */
+  capabilities: string[]
+  /** Whether the model advertises native tool-calling. */
+  supportsTools: boolean
+}
+
+/** A tool-capable model we suggest the user pull, if not already installed. */
+export interface RecommendedModel {
+  name: string
+  /** Human-readable download size (approximate). */
+  size: string
+  /** One-line reason it's worth having. */
+  note: string
+}
+
+export interface OllamaModelsResult {
+  /** False when Ollama couldn't be reached (see `error`). */
+  ok: boolean
+  error?: string
+  installed: OllamaModelInfo[]
+  recommended: RecommendedModel[]
+}
+
 // ---- Streaming events pushed from main -> renderer over a single channel ----
 
 export type AgentEvent =

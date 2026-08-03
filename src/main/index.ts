@@ -6,6 +6,7 @@ import { TrundlerMcp } from './mcpClient.js'
 import { OllamaBackend } from './agent/ollamaBackend.js'
 import { AnthropicBackend } from './agent/anthropicBackend.js'
 import { runAgent } from './agent/loop.js'
+import { listOllamaModels } from './ollamaModels.js'
 import { buildSystemPrompt, favoritesPromptSection } from './agent/system.js'
 import { loadFavorites, toggleFavorite, removeFavorite } from './favorites.js'
 import { Logger, forcedDebug } from './logger.js'
@@ -202,6 +203,11 @@ ipcMain.handle('debug:open', () => logger?.openFolder())
 
 ipcMain.handle('tools:list', () =>
   mcp.getTools().map((t) => ({ name: t.name, description: t.description }))
+)
+
+/** Discover local Ollama models + tool-calling capability for the model picker. */
+ipcMain.handle('ollama:models', (_e, baseUrl?: string) =>
+  listOllamaModels(baseUrl || config.ollama.baseUrl)
 )
 
 ipcMain.handle('chat:reset', () => {
