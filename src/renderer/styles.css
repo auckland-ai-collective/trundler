@@ -562,7 +562,7 @@ button {
 }
 .product-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
   gap: 10px;
 }
 .product-card {
@@ -583,6 +583,7 @@ button {
 .product-card.oos .product-name,
 .product-card.oos .product-size,
 .product-card.oos .product-prices,
+.product-card.oos .by-weight,
 .product-card.oos .multibuy {
   opacity: 0.55;
 }
@@ -679,6 +680,8 @@ button {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
   margin-top: auto;
 }
 .link {
@@ -692,6 +695,7 @@ button {
   border-radius: 6px;
   padding: 3px 9px;
   font-size: 12px;
+  white-space: nowrap;
 }
 .add-btn:hover {
   border-color: var(--accent);
@@ -888,7 +892,7 @@ button {
 .qty-stepper {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
 }
 .qty-stepper button {
   width: 18px;
@@ -913,11 +917,92 @@ button {
   opacity: 0.4;
   cursor: default;
 }
-.qty-value {
-  min-width: 22px;
+/* ---- Quantity + pricing unit ---- */
+.qty-picker {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.qty-input {
+  width: 38px;
+  padding: 1px 2px;
   text-align: center;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--bg-3);
   color: var(--text);
+  font: inherit;
   font-size: 12px;
+}
+.qty-picker.compact .qty-input {
+  width: 32px;
+}
+.qty-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.qty-input:disabled {
+  opacity: 0.4;
+}
+/* Segmented kg / ea switch — the unit is never left to inference. */
+.unit-toggle {
+  display: flex;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  overflow: hidden;
+}
+.unit-toggle button {
+  padding: 1px 6px;
+  border: none;
+  background: var(--bg-3);
+  color: var(--text-dim);
+  font-size: 11px;
+  line-height: 1.5;
+  cursor: pointer;
+}
+.unit-toggle button + button {
+  border-left: 1px solid var(--line);
+}
+.unit-toggle button:hover:not(:disabled) {
+  color: var(--text);
+}
+.unit-toggle button.on {
+  background: var(--accent);
+  color: #0c1a11;
+  font-weight: 700;
+}
+.unit-toggle button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.unit-static {
+  font-size: 11px;
+  color: var(--text-dim);
+}
+/* The card's quantity row, between the prices and the actions. */
+.product-qty {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 2px;
+}
+.qty-cost {
+  font-size: 11px;
+  color: var(--text-dim);
+}
+/* "priced per kg" flag — the headline price buys a kilo, not an item. */
+.by-weight {
+  font-size: 11px;
+  color: var(--accent-2);
+}
+.price-per {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--text-dim);
+  margin-left: 1px;
 }
 .cart-totals {
   border-top: 1px solid var(--line);
@@ -1148,9 +1233,21 @@ button {
   width: min(440px, 90vw);
 }
 .modal-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font-size: 16px;
   font-weight: 600;
   margin-bottom: 8px;
+}
+.modal-amount {
+  padding: 1px 7px;
+  border-radius: 5px;
+  background: var(--bg-3);
+  border: 1px solid var(--line);
+  color: var(--accent-2);
+  font-size: 12px;
+  font-weight: 700;
 }
 .modal-body {
   color: var(--text-dim);

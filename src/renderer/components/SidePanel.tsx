@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { Cart, Favorite, Product } from '../../shared/types.js'
+import type { PricingUnit } from '../blocks.js'
 import { CartPanel } from './CartPanel.js'
 import { FavoritesPanel } from './FavoritesPanel.js'
 
@@ -17,7 +18,7 @@ interface Props {
   favorites: Favorite[]
   favoriteKeys: Set<string>
   canAdd: boolean
-  onAdd: (sku: string, provider: string) => void
+  onAdd: (sku: string, provider: string, quantity: number, unit: PricingUnit) => void
   onToggleFavorite: (product: Product, provider: string) => void
   onRemoveFavorite: (provider: string, sku: string) => void
 }

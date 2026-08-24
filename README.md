@@ -34,6 +34,9 @@ Electron main (Node)                         Renderer (React)
   approval modal before they run.
 - **Structured tool results become UI**: product results render as a card grid; cart
   tools refresh the live cart panel.
+- **Quantity and pricing unit are explicit**: weight-sold items (loose produce, deli,
+  butchery) are flagged `⚖ priced per kg`, and every card, favourite and cart line
+  carries a typeable quantity plus a **kg / ea** switch, so "1" is never ambiguous.
 - **Auth is first-class**: a status chip shows whether you're signed in to Countdown,
   with **Log in** / **Log out** buttons in the top bar (no need to discover it via an error).
 

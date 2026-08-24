@@ -1,6 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { AgentEvent, AppConfig, AuthStatus, Cart, Favorite, Product, ToolCall } from '../shared/types.js'
-import { CART_TOOLS, PRODUCT_TOOLS, extractProducts, type Block } from './blocks.js'
+import {
+  CART_TOOLS,
+  PRODUCT_TOOLS,
+  extractProducts,
+  type Block,
+  type PricingUnit
+} from './blocks.js'
 import { renderMarkdown } from './lib/markdown.js'
 import { TopBar } from './components/TopBar.js'
 import { Composer } from './components/Composer.js'
@@ -204,15 +210,29 @@ export function App(): JSX.Element {
     }
   }
 
-  function onAddToCart(sku: string, provider: string): void {
+  function onAddToCart(
+    sku: string,
+    provider: string,
+    quantity = 1,
+    unit: PricingUnit = 'Each'
+  ): void {
     // "cart_add" sets an absolute quantity (it's not additive), so adding an
-    // item that's already in the cart would reset it to 1. Increment instead.
-    const existing = cart?.items.find((it) => it.sku === sku)
+    // item that's already in the cart would reset it. Top up the existing line
+    // instead — but only when it's priced the same way, since 1 Kg and 1 Each of
+    // the same SKU are separate lines the store tracks independently.
+    const existing = cart?.items.find(
+      (it) => it.sku === sku && (it.unit ?? 'Each') === unit
+    )
     if (existing) {
-      const quantity = (existing.quantity ?? 1) + 1
-      void mutateCart('cart_update', { sku, quantity, unit: existing.unit, provider }, 'Add failed', provider)
+      const next = (existing.quantity ?? 1) + quantity
+      void mutateCart(
+        'cart_update',
+        { sku, quantity: next, unit, provider },
+        'Add failed',
+        provider
+      )
     } else {
-      void mutateCart('cart_add', { sku, quantity: 1, provider }, 'Add failed', provider)
+      void mutateCart('cart_add', { sku, quantity, unit, provider }, 'Add failed', provider)
     }
   }
 
@@ -386,7 +406,7 @@ function BlockView({
 }: {
   block: Block
   canAdd: boolean
-  onAdd: (sku: string, provider: string) => void
+  onAdd: (sku: string, provider: string, quantity: number, unit: PricingUnit) => void
   favoriteKeys: Set<string>
   onToggleFavorite: (product: Product, provider: string) => void
 }): JSX.Element {

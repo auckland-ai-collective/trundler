@@ -1,7 +1,19 @@
 import { useMemo, useState } from 'react'
 import type { Product } from '../../shared/types.js'
-import { letterLabel, sortProducts, unitPriceLabel, upsizeImage, type ProductSort } from '../blocks.js'
+import {
+  estimatedCost,
+  letterLabel,
+  soldByWeight,
+  sortProducts,
+  unitLabel,
+  unitOptions,
+  unitPriceLabel,
+  upsizeImage,
+  type PricingUnit,
+  type ProductSort
+} from '../blocks.js'
 import { Lightbox } from './Lightbox.js'
+import { QuantityPicker } from './QuantityPicker.js'
 
 /** "Save $2.00 (20%)" from whichever of the two the provider gave us. Null when
  *  neither is a positive number, so specials without a stated saving stay clean. */
@@ -19,7 +31,7 @@ interface Props {
   provider: string
   query?: string
   canAdd: boolean
-  onAdd: (sku: string, provider: string) => void
+  onAdd: (sku: string, provider: string, quantity: number, unit: PricingUnit) => void
   /** "provider:sku" keys of favorited items — controls the filled heart. */
   favoriteKeys: Set<string>
   onToggleFavorite: (product: Product, provider: string) => void
@@ -62,89 +74,19 @@ export function ProductGrid({
         ) : null}
       </div>
       <div className="product-grid">
-        {ordered.map((p, i) => {
-          const unit = unitPriceLabel(p)
-          // Only an explicit `false` means out of stock; `undefined` = unknown
-          // (some providers don't report availability) and stays purchasable.
-          const outOfStock = p.inStock === false
-          // Green price + "was" + savings only for genuine specials, so green
-          // reliably signals a deal rather than colouring every price.
-          const onSpecial = p.isSpecial === true
-          const savingsText = onSpecial ? savingsLabel(p.savings, p.savingsPercent) : null
-          const showWas =
-            onSpecial && p.originalPrice != null && p.price != null && p.originalPrice > p.price
-          return (
-          <div className={`product-card${outOfStock ? ' oos' : ''}`} key={`${p.sku}-${i}`}>
-            <div className="product-label">{letterLabel(i)}</div>
-            {outOfStock ? <div className="oos-badge">Out of stock</div> : null}
-            {p.image ? (
-              <img
-                className="product-img"
-                src={p.image}
-                alt=""
-                loading="lazy"
-                title="Click to enlarge"
-                onClick={() => setZoom(p)}
-              />
-            ) : (
-              <div className="product-img placeholder" />
-            )}
-            <div className="product-body">
-              <div className="product-name" title={p.name}>
-                {p.name}
-              </div>
-              {p.size ? <div className="product-size">{p.size}</div> : null}
-              <div className="product-prices">
-                {p.price != null ? (
-                  <span className={`price${onSpecial ? ' special' : ''}`}>${p.price.toFixed(2)}</span>
-                ) : null}
-                {showWas ? <span className="was">${p.originalPrice!.toFixed(2)}</span> : null}
-                {unit ? <span className="unit">{unit}</span> : null}
-              </div>
-              {savingsText ? <div className="savings">{savingsText}</div> : null}
-              {p.multiBuy ? <div className="multibuy">{p.multiBuy}</div> : null}
-              <div className="product-actions">
-                {p.productUrl ? (
-                  <a className="link" href={p.productUrl} target="_blank" rel="noreferrer">
-                    view
-                  </a>
-                ) : null}
-                <div className="product-actions-right">
-                  {p.sku ? (
-                    <button
-                      className={`fav-btn${favoriteKeys.has(`${provider}:${p.sku}`) ? ' on' : ''}`}
-                      title={
-                        favoriteKeys.has(`${provider}:${p.sku}`)
-                          ? 'Remove from favorites'
-                          : 'Add to favorites'
-                      }
-                      aria-label={
-                        favoriteKeys.has(`${provider}:${p.sku}`)
-                          ? 'Remove from favorites'
-                          : 'Add to favorites'
-                      }
-                      aria-pressed={favoriteKeys.has(`${provider}:${p.sku}`)}
-                      onClick={() => onToggleFavorite(p, provider)}
-                    >
-                      {favoriteKeys.has(`${provider}:${p.sku}`) ? '♥' : '♡'}
-                    </button>
-                  ) : null}
-                  {canAdd ? (
-                    <button
-                      className="add-btn"
-                      disabled={outOfStock}
-                      title={outOfStock ? 'Out of stock' : undefined}
-                      onClick={() => onAdd(p.sku, provider)}
-                    >
-                      + add
-                    </button>
-                  ) : null}
-                </div>
-              </div>
-            </div>
-          </div>
-          )
-        })}
+        {ordered.map((p, i) => (
+          <ProductCard
+            key={`${p.sku}-${i}`}
+            product={p}
+            index={i}
+            provider={provider}
+            canAdd={canAdd}
+            onAdd={onAdd}
+            favorited={Boolean(p.sku) && favoriteKeys.has(`${provider}:${p.sku}`)}
+            onToggleFavorite={onToggleFavorite}
+            onZoom={setZoom}
+          />
+        ))}
       </div>
       {zoom?.image ? (
         <Lightbox
@@ -154,6 +96,139 @@ export function ProductGrid({
           onClose={() => setZoom(null)}
         />
       ) : null}
+    </div>
+  )
+}
+
+interface CardProps {
+  product: Product
+  index: number
+  provider: string
+  canAdd: boolean
+  onAdd: (sku: string, provider: string, quantity: number, unit: PricingUnit) => void
+  favorited: boolean
+  onToggleFavorite: (product: Product, provider: string) => void
+  onZoom: (product: Product) => void
+}
+
+/** One result tile. Owns its pending quantity and pricing unit so each card can
+ *  be dialled in independently before adding — previously every card added
+ *  exactly one Each, which for loose produce quietly meant something other than
+ *  "one pear". */
+function ProductCard({
+  product: p,
+  index,
+  provider,
+  canAdd,
+  onAdd,
+  favorited,
+  onToggleFavorite,
+  onZoom
+}: CardProps): JSX.Element {
+  const units = useMemo(() => unitOptions(p), [p])
+  const [unit, setUnit] = useState<PricingUnit>(units[0])
+  const [qty, setQty] = useState(1)
+
+  const unitPrice = unitPriceLabel(p)
+  // Only an explicit `false` means out of stock; `undefined` = unknown
+  // (some providers don't report availability) and stays purchasable.
+  const outOfStock = p.inStock === false
+  // Green price + "was" + savings only for genuine specials, so green
+  // reliably signals a deal rather than colouring every price.
+  const onSpecial = p.isSpecial === true
+  const savingsText = onSpecial ? savingsLabel(p.savings, p.savingsPercent) : null
+  const showWas =
+    onSpecial && p.originalPrice != null && p.price != null && p.originalPrice > p.price
+  const byWeight = soldByWeight(p)
+  const cost = estimatedCost(p, qty, unit)
+  const addLabel = `${qty} ${unitLabel(unit)}`
+
+  return (
+    <div className={`product-card${outOfStock ? ' oos' : ''}`}>
+      <div className="product-label">{letterLabel(index)}</div>
+      {outOfStock ? <div className="oos-badge">Out of stock</div> : null}
+      {p.image ? (
+        <img
+          className="product-img"
+          src={p.image}
+          alt=""
+          loading="lazy"
+          title="Click to enlarge"
+          onClick={() => onZoom(p)}
+        />
+      ) : (
+        <div className="product-img placeholder" />
+      )}
+      <div className="product-body">
+        <div className="product-name" title={p.name}>
+          {p.name}
+        </div>
+        {p.size ? <div className="product-size">{p.size}</div> : null}
+        {/* A weight-sold item is visually identical to a packaged one otherwise —
+            say it outright, because it changes what the headline price buys. */}
+        {byWeight ? (
+          <div className="by-weight" title="Priced by weight — the price shown is for one kilogram">
+            ⚖ priced per kg
+          </div>
+        ) : null}
+        <div className="product-prices">
+          {p.price != null ? (
+            <span className={`price${onSpecial ? ' special' : ''}`}>
+              ${p.price.toFixed(2)}
+              {byWeight ? <span className="price-per">/kg</span> : null}
+            </span>
+          ) : null}
+          {showWas ? <span className="was">${p.originalPrice!.toFixed(2)}</span> : null}
+          {unitPrice ? <span className="unit">{unitPrice}</span> : null}
+        </div>
+        {savingsText ? <div className="savings">{savingsText}</div> : null}
+        {p.multiBuy ? <div className="multibuy">{p.multiBuy}</div> : null}
+        {canAdd && !outOfStock ? (
+          <div className="product-qty">
+            <QuantityPicker
+              quantity={qty}
+              unit={unit}
+              units={units}
+              label={p.name}
+              onQuantityChange={setQty}
+              onUnitChange={setUnit}
+            />
+            <span className="qty-cost">
+              {cost != null ? `≈ $${cost.toFixed(2)}` : 'weighed in store'}
+            </span>
+          </div>
+        ) : null}
+        <div className="product-actions">
+          {p.productUrl ? (
+            <a className="link" href={p.productUrl} target="_blank" rel="noreferrer">
+              view
+            </a>
+          ) : null}
+          <div className="product-actions-right">
+            {p.sku ? (
+              <button
+                className={`fav-btn${favorited ? ' on' : ''}`}
+                title={favorited ? 'Remove from favorites' : 'Add to favorites'}
+                aria-label={favorited ? 'Remove from favorites' : 'Add to favorites'}
+                aria-pressed={favorited}
+                onClick={() => onToggleFavorite(p, provider)}
+              >
+                {favorited ? '♥' : '♡'}
+              </button>
+            ) : null}
+            {canAdd ? (
+              <button
+                className="add-btn"
+                disabled={outOfStock}
+                title={outOfStock ? 'Out of stock' : `Add ${addLabel} to cart`}
+                onClick={() => onAdd(p.sku, provider, qty, unit)}
+              >
+                + add {addLabel}
+              </button>
+            ) : null}
+          </div>
+        </div>
+      </div>
     </div>
   )
 }

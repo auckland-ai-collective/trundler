@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import type { Cart, CartItem, Product } from '../../shared/types.js'
-import { countdownImage, upsizeImage } from '../blocks.js'
+import { countdownImage, upsizeImage, type PricingUnit } from '../blocks.js'
 import { Lightbox } from './Lightbox.js'
+import { QuantityPicker } from './QuantityPicker.js'
 
 interface Props {
   cart: Cart | null
@@ -25,16 +26,10 @@ function isDetailed(it: CartItem): boolean {
   return Boolean(it && (it.name || it.sku))
 }
 
-/**
- * Next quantity for a stepper click. Weight-sold items (unit 'Kg') step by whole
- * kilograms and snap to round values, so a 0.3 Kg produce item lands cleanly on
- * 1 Kg, 2 Kg… rather than an awkward 1.3 Kg — which stores reject for loose
- * produce sold in whole-unit increments, making the button appear to do nothing.
- * 'Each' (and any other unit) keep a simple ±1 step.
- */
-function stepQty(qty: number, unit: string | undefined, dir: 1 | -1): number {
-  if (unit === 'Kg') return dir === 1 ? Math.floor(qty) + 1 : Math.ceil(qty) - 1
-  return qty + dir
+/** The cart line's pricing unit. The provider reports it per line, so a line
+ *  added by weight stays by weight; anything unrecognised is a plain count. */
+function lineUnit(it: CartItem): PricingUnit {
+  return it.unit === 'Kg' ? 'Kg' : 'Each'
 }
 
 export function CartPanel({
@@ -117,7 +112,7 @@ export function CartPanel({
         <ul className="cart-items">
           {visible.map((it, i) => {
             const qty = it.quantity ?? 1
-            const unitLabel = it.unit && it.unit !== 'Each' ? ` ${it.unit}` : ''
+            const unit = lineUnit(it)
             // Prefer an image seen in a search grid; otherwise derive it from the
             // stockcode (Countdown only — other providers' URLs aren't derivable).
             const img =
@@ -154,28 +149,20 @@ export function CartPanel({
                   </button>
                 </div>
                 <div className="cart-item-meta">
-                  <div className="qty-stepper">
-                    <button
-                      title="Decrease quantity"
-                      aria-label="Decrease quantity"
-                      disabled={busy}
-                      onClick={() => onChangeQty(it.sku, stepQty(qty, it.unit, -1), it.unit, provider)}
-                    >
-                      −
-                    </button>
-                    <span className="qty-value">
-                      {qty}
-                      {unitLabel}
-                    </span>
-                    <button
-                      title="Increase quantity"
-                      aria-label="Increase quantity"
-                      disabled={busy}
-                      onClick={() => onChangeQty(it.sku, stepQty(qty, it.unit, 1), it.unit, provider)}
-                    >
-                      +
-                    </button>
-                  </div>
+                  {/* The unit is fixed once a line exists (switching it means a
+                      remove + re-add), so it shows as a label rather than a
+                      toggle — but it always shows, so "2" can never be read as
+                      two pears when it means two kilos. */}
+                  <QuantityPicker
+                    quantity={qty}
+                    unit={unit}
+                    units={[unit]}
+                    compact
+                    allowZero
+                    disabled={busy}
+                    label={label}
+                    onQuantityChange={(q) => onChangeQty(it.sku, q, it.unit, provider)}
+                  />
                   <div className="cart-item-meta-right">
                     {it.subtotal != null ? <span>{formatMoney(it.subtotal)}</span> : null}
                     <button
