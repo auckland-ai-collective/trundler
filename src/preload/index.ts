@@ -3,6 +3,7 @@ import type {
   AgentEvent,
   AppConfig,
   AuthStatus,
+  ClaudeCodeStatus,
   Favorite,
   OllamaModelsResult,
   Product,
@@ -15,6 +16,8 @@ const api = {
   listTools: (): Promise<ToolInfo[]> => ipcRenderer.invoke('tools:list'),
   listOllamaModels: (baseUrl?: string): Promise<OllamaModelsResult> =>
     ipcRenderer.invoke('ollama:models', baseUrl),
+  claudeCodeStatus: (command?: string): Promise<ClaudeCodeStatus> =>
+    ipcRenderer.invoke('claudeCode:status', command),
 
   getFavorites: (): Promise<Favorite[]> => ipcRenderer.invoke('favorites:get'),
   toggleFavorite: (provider: string, product: Product): Promise<Favorite[]> =>

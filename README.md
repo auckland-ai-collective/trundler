@@ -3,8 +3,10 @@
 </p>
 
 A desktop app that lets you **have a dialogue with an agent** while it shops for you.
-The agent's brain runs either **locally (Ollama)** or in the **cloud (Claude)**; either
-way, all the actual grocery I/O happens on your own machine and residential connection
+The agent's brain runs either **locally (Ollama)**, in the **cloud (Claude, API key)**, or
+through the **Claude Code CLI on your own machine** (billed to your Claude subscription
+rather than API tokens); whichever you pick,
+all the actual grocery I/O happens on your own machine and residential connection
 via [`trundler-mcp`](https://www.npmjs.com/package/@auckland-ai-collective/trundler-mcp)
 ([source](https://github.com/auckland-ai-collective/trundler-mcp)), so there's no
 bot-detection or hosting problem to solve. It's a normal npm dependency of this app —
@@ -21,14 +23,20 @@ Electron main (Node)                         Renderer (React)
 ├── TrundlerMcp ──stdio──► trundler-mcp ──► grocery sites (residential IP)
 ├── Agent loop (shared)                      ├── chat + streamed tokens
 │    ├── OllamaBackend   (local)             ├── product grid (from tool results)
-│    └── AnthropicBackend (cloud)            ├── live cart panel
+│    └── AnthropicBackend (API key)          ├── live cart panel
+├── Claude Code CLI ◄─http─ MCP proxy        │
 └── IPC + approval gate ◄──── approve/deny ──┤ approval modal (cart mutations)
 ```
 
 - **One shared agent loop** ([`src/main/agent/loop.ts`](src/main/agent/loop.ts)) drives
   the conversation. It's parameterised by a `Backend`, so switching Ollama ↔ Claude is a
   dropdown, not a rewrite.
-- **Tools come from MCP**, so both brains inherit trundler's own product-listing
+- **The Claude Code brain is the exception**: the CLI runs its *own* agent loop, so it
+  bypasses `loop.ts`. It gets the grocery tools back through a loopback MCP proxy
+  ([`claudeCodeBridge.ts`](src/main/agent/claudeCodeBridge.ts)) that forwards every call
+  into this process — so tool execution, the approval gate and the session log stay
+  exactly where they are, and no second `trundler-mcp` is spawned.
+- **Tools come from MCP**, so every brain inherits trundler's own product-listing
   instructions (letter labels, price-per-unit, cheapest-first).
 - **Cart mutations require approval** — `cart_add` / `cart_update` / `cart_remove` pop an
   approval modal before they run.
@@ -43,14 +51,37 @@ Electron main (Node)                         Renderer (React)
 ## Prerequisites
 
 - **Node ≥ 20** (dev has 22).
-- **[Ollama](https://ollama.com)** running locally with a tool-capable model:
-  ```
-  ollama pull llama3.1:8b      # fast, good enough for dev
-  ollama pull qwen3:14b        # stronger tool use, slower
-  ```
+- **A brain** — any one of these is enough:
+  - **[Ollama](https://ollama.com)** running locally with a tool-capable model:
+    ```
+    ollama pull llama3.1:8b      # fast, good enough for dev
+    ollama pull qwen3:14b        # stronger tool use, slower
+    ```
+  - **An Anthropic API key**, for the cloud Claude backend.
+  - **The [Claude Code CLI](https://claude.com/claude-code)**, to run Claude on your
+    existing subscription instead of API tokens:
+    ```
+    npm i -g @anthropic-ai/claude-code
+    claude            # run once to sign in, then quit
+    ```
+    No API key is involved — the CLI carries its own credentials. Settings → Models
+    shows whether the app can find it.
 
 That's it — the grocery data layer (`@auckland-ai-collective/trundler-mcp`) is a
 dependency and installs automatically. No second repo to clone or build.
+
+### What the Claude Code brain is allowed to do
+
+It is deliberately boxed in, since Claude Code can otherwise read files and run commands:
+
+- `--tools ""` removes every built-in tool, so there is **no file, shell or web access**.
+- `--strict-mcp-config` means it sees *only* the grocery tools — none of your own MCP
+  servers are loaded. (This matters: without it, a developer's connectors get pulled into
+  every prompt — measured at 211k tokens of cache on a one-word reply.)
+- `--setting-sources ""` and `--disable-slash-commands` keep your Claude Code setup,
+  skills and `CLAUDE.md` out of a grocery session; it runs in an empty scratch directory.
+- Cart changes still raise the app's own **approval modal** — the CLI never reaches the
+  grocery layer directly, only the proxy.
 
 ## Setup
 
@@ -95,8 +126,9 @@ World and Pak'nSave need no login (anonymous, read-only).
 
 ## Configuration
 
-Brain (Ollama/Claude) and provider are quick switches in the top bar. The ⚙︎ drawer
-holds the rest — model, Ollama host, Claude API key, MCP server path, and the
+Brain (Ollama / Claude / Claude Code) and provider are quick switches in the top bar. The
+⚙︎ drawer holds the rest — model, Ollama host, Claude API key, Claude Code CLI command,
+MCP server path, and the
 cart-approval and debug-logging toggles — and edits there apply only when you press
 **Save** (Cancel discards). Defaults can also come from env vars — see
 [`.env.example`](.env.example). Settings persist to `config.json` in the app's userData
@@ -158,6 +190,8 @@ src/
       loop.ts              shared tool loop
       ollamaBackend.ts     local model (streaming + tools)
       anthropicBackend.ts  Claude (streaming SSE + tools)
+      claudeCodeAgent.ts   Claude Code CLI (spawn, containment, NDJSON stream)
+      claudeCodeBridge.ts  loopback MCP proxy so the CLI reuses our tools/gate
       system.ts            system prompt (+ MCP instructions)
   preload/index.ts         contextBridge API
   renderer/                React chat UI
@@ -169,6 +203,10 @@ scripts/lib-check.mjs      headless in-process (buildServer) check
 
 - Only the Ollama path is exercised by the smoke test; the Claude path shares the same
   loop and is wired but needs an API key to try.
+- The Claude Code path has no smoke test — it needs the signed-in CLI, so it can't run in
+  CI. It was validated by hand end-to-end: tool call → approval → cart write, the
+  approval-denied path, `--resume` continuity across messages, and cancel taking the CLI
+  and its MCP proxy down together (no orphans).
 - The app spawns the MCP as a subprocess with Electron's bundled Node
   (`ELECTRON_RUN_AS_NODE`). The package also exposes a library entry (`buildServer`), so a
   packaged build can instead mount the MCP **in-process** (in-memory transport) to avoid

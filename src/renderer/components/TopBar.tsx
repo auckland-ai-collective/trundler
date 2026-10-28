@@ -3,6 +3,8 @@ import type {
   AppConfig,
   AuthStatus,
   BackendId,
+  ClaudeCodeModelOption,
+  ClaudeCodeStatus,
   OllamaModelInfo,
   OllamaModelsResult,
   RecommendedModel
@@ -44,6 +46,9 @@ export function TopBar({
   // Locally-discovered Ollama models for the picker (null = not loaded yet).
   const [models, setModels] = useState<OllamaModelsResult | null>(null)
   const [modelsLoading, setModelsLoading] = useState(false)
+  // Whether the local Claude Code CLI is installed (null = not probed yet).
+  const [cliStatus, setCliStatus] = useState<ClaudeCodeStatus | null>(null)
+  const [cliChecking, setCliChecking] = useState(false)
 
   // Immediate persistence for the top-bar quick switches (Provider / Brain).
   function patch(p: Partial<AppConfig>): void {
@@ -75,6 +80,7 @@ export function TopBar({
         ...config,
         ollama: draft.ollama,
         anthropic: draft.anthropic,
+        claudeCode: draft.claudeCode,
         mcpServerPath: draft.mcpServerPath,
         requireCartApproval: draft.requireCartApproval,
         debugLogging: draft.debugLogging
@@ -92,10 +98,24 @@ export function TopBar({
     }
   }
 
-  // Discover models when the Models tab is shown for the Ollama backend.
+  async function checkCli(command: string): Promise<void> {
+    setCliChecking(true)
+    try {
+      setCliStatus(await window.trundler.claudeCodeStatus(command))
+    } finally {
+      setCliChecking(false)
+    }
+  }
+
+  // Discover models when the Models tab is shown, per backend. The Claude Code
+  // probe is a `--version` call, so it never opens a billable session.
   useEffect(() => {
-    if (open && tab === 'models' && draft?.backend === 'ollama' && !models && !modelsLoading) {
+    if (!open || tab !== 'models' || !draft) return
+    if (draft.backend === 'ollama' && !models && !modelsLoading) {
       void loadModels(draft.ollama.baseUrl)
+    }
+    if (draft.backend === 'claude-code' && !cliStatus && !cliChecking) {
+      void checkCli(draft.claudeCode.command)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, tab, draft?.backend])
@@ -127,7 +147,8 @@ export function TopBar({
             onChange={(e) => patch({ backend: e.target.value as BackendId })}
           >
             <option value="ollama">Ollama (local)</option>
-            <option value="anthropic">Claude (cloud)</option>
+            <option value="anthropic">Claude (API key)</option>
+            <option value="claude-code">Claude Code (subscription)</option>
           </select>
         </label>
 
@@ -208,6 +229,15 @@ export function TopBar({
               onSelect={(model) => dpatch({ ollama: { ...draft.ollama, model } })}
               onHostChange={(baseUrl) => dpatch({ ollama: { ...draft.ollama, baseUrl } })}
               onRefresh={() => loadModels(draft.ollama.baseUrl)}
+            />
+          ) : draft.backend === 'claude-code' ? (
+            <ClaudeCodeModelTab
+              draft={draft}
+              status={cliStatus}
+              checking={cliChecking}
+              onSelect={(model) => dpatch({ claudeCode: { ...draft.claudeCode, model } })}
+              onCommandChange={(command) => dpatch({ claudeCode: { ...draft.claudeCode, command } })}
+              onRefresh={() => checkCli(draft.claudeCode.command)}
             />
           ) : (
             <>
@@ -342,6 +372,84 @@ function OllamaModelTab({
           <div className="drawer-note">Run the command in a terminal, then Refresh.</div>
         </div>
       ) : null}
+    </>
+  )
+}
+
+/** CLI aliases rather than pinned ids, so the choice tracks the latest model in
+ *  each family and never needs updating here. */
+const CLAUDE_CODE_MODELS: ClaudeCodeModelOption[] = [
+  { id: 'sonnet', label: 'Sonnet', note: 'balanced — the sensible default' },
+  { id: 'opus', label: 'Opus', note: 'strongest reasoning, heaviest on your limits' },
+  { id: 'haiku', label: 'Haiku', note: 'fastest and cheapest against your quota' }
+]
+
+/** The Models tab for the Claude Code backend: whether the CLI is installed,
+ *  which model family to run, and the command to invoke if it isn't on PATH. */
+function ClaudeCodeModelTab({
+  draft,
+  status,
+  checking,
+  onSelect,
+  onCommandChange,
+  onRefresh
+}: {
+  draft: AppConfig
+  status: ClaudeCodeStatus | null
+  checking: boolean
+  onSelect: (model: string) => void
+  onCommandChange: (command: string) => void
+  onRefresh: () => void
+}): JSX.Element {
+  return (
+    <>
+      <div className="picker-head">
+        <span>Claude Code CLI</span>
+        <button className="link-btn" onClick={onRefresh} disabled={checking}>
+          {checking ? 'Checking…' : 'Re-check'}
+        </button>
+      </div>
+
+      {checking && !status ? (
+        <div className="drawer-note">Looking for the CLI…</div>
+      ) : status?.ok ? (
+        <div className="msg compact">Found {status.version}. Signed in via the CLI.</div>
+      ) : status ? (
+        <div className="msg error compact">
+          Couldn't run "{status.command}". {status.error ?? ''} Install it with{' '}
+          <code>npm i -g @anthropic-ai/claude-code</code>, then run <code>claude</code> once to
+          sign in.
+        </div>
+      ) : null}
+
+      <div className="picker-head">
+        <span>Model</span>
+      </div>
+      <div className="model-list">
+        {CLAUDE_CODE_MODELS.map((m) => (
+          <button
+            key={m.id}
+            className={`model-row ${draft.claudeCode.model === m.id ? 'selected' : ''}`}
+            onClick={() => onSelect(m.id)}
+          >
+            <span className="model-radio" />
+            <span className="model-name">{m.label}</span>
+            <span className="model-note">{m.note}</span>
+          </button>
+        ))}
+      </div>
+
+      <label className="ctl wide">
+        CLI command
+        <input value={draft.claudeCode.command} onChange={(e) => onCommandChange(e.target.value)} />
+      </label>
+
+      <div className="drawer-note">
+        Runs the Claude Code CLI installed on this machine, so messages bill to your Claude
+        subscription instead of an API key. The agent is given the trundler grocery tools and
+        nothing else — no file, shell, or web access — and cart changes still go through the
+        approval prompt.
+      </div>
     </>
   )
 }

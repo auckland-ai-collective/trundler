@@ -40,6 +40,13 @@ function defaults(): AppConfig {
       apiKey: process.env.ANTHROPIC_API_KEY || '',
       model: process.env.TRUNDLER_ANTHROPIC_MODEL || 'claude-sonnet-4-6'
     },
+    claudeCode: {
+      // Resolved off PATH by default — the CLI installs a shim there. No key:
+      // the CLI carries its own OAuth, so this route bills the subscription.
+      command: process.env.TRUNDLER_CLAUDE_CODE_CMD || 'claude',
+      // An alias, not a pinned id, so it tracks the latest model in the family.
+      model: process.env.TRUNDLER_CLAUDE_CODE_MODEL || 'sonnet'
+    },
     mcpServerPath: resolveMcpServerPath(),
     defaultProvider: process.env.TRUNDLER_PROVIDER || 'countdown',
     requireCartApproval: process.env.TRUNDLER_CART_APPROVAL !== 'off',
@@ -63,7 +70,8 @@ export function loadConfig(): AppConfig {
         ...base,
         ...saved,
         ollama: { ...base.ollama, ...saved.ollama },
-        anthropic: { ...base.anthropic, ...saved.anthropic }
+        anthropic: { ...base.anthropic, ...saved.anthropic },
+        claudeCode: { ...base.claudeCode, ...saved.claudeCode }
       }
     }
   } catch (err) {

@@ -19,18 +19,18 @@ npm run dev
 # 1\. Tag the commit the installer was built from
 
 ```
-git tag -a v0.1.26 -m "Trundler 0.1.26"
-git push origin v0.1.26
+git tag -a v0.1.28 -m "Trundler 0.1.28"
+git push origin v0.1.28
 ```
 
 # 2\. Create the release and attach the installer
 
 ```
-gh release create v0.1.26 \
-  "dist/Trundler Setup 0.1.26.exe" \
-  "dist/Trundler Setup 0.1.26.exe.blockmap" \
+gh release create v0.1.28 \
+  "dist/Trundler Setup 0.1.28.exe" \
+  "dist/Trundler Setup 0.1.28.exe.blockmap" \
   "dist/latest.yml" \
   --repo auckland-ai-collective/trundler \
-  --title "Trundler 0.1.26" \
-  --notes "Model picker with tabbed settings, Ollama tool-calling detection, on-special pricing, favourites, out-of-stock handling."
+  --title "Trundler 0.1.28" \
+  --notes "Woolworths moved to Auth0 sessions and a GraphQL API. Requires trundler-mcp 0.1.12."
 ```
